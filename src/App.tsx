@@ -1,12 +1,16 @@
-import Login from "./components/LoginRegistre/Login.jsx" // Chemin relatif correct
-import './App.css'; // Importez le fichier CSS une seule fois
+
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Registre from './components/register/RegisterAsPatient/RegisterPatient.tsx'; // Chemin relatif correct
+import './App.css'; // Import du CSS
 
 function App() {
   return (
-    <div>
-      <h1 className="text-center">Mon Application</h1>
-      <Login /> {/* Utilisation du composant Login */}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/Registre" element={<Registre />} />
+      
+      </Routes>
+    </BrowserRouter>
   );
 }
 
