@@ -8,6 +8,7 @@ export interface FormData {
     phone: string;
     country: string;
     city: string;
+    speciality: string;
     uid: string;
     termsAccepted: boolean;
     

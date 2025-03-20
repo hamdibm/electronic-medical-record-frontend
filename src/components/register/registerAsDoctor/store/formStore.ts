@@ -18,6 +18,7 @@ const initialFormData: FormData = {
   phone: '',
   country: '',
   city: '',
+  speciality: '',
   uid: '',
   termsAccepted: false,
   documents: [],

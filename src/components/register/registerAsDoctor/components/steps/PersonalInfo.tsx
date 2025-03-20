@@ -23,6 +23,7 @@ const PersonalInfoStep: React.FC = () => {
       phone: formData.phone,
       country: formData.country,
       city: formData.city,
+      speciality: formData.speciality,
       uid: formData.uid,
       termsAccepted: formData.termsAccepted,
     },
@@ -169,6 +170,22 @@ const PersonalInfoStep: React.FC = () => {
               )}
             />
             {errors.city && <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">speciality</label>
+            <Controller
+              name="speciality"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="speciality : cardiologist,diabetologist,etc"
+                />
+              )}
+            />
+            {errors.speciality && <p className="text-red-500 text-sm mt-1">{errors.speciality.message}</p>}
           </div>
           
           <div>

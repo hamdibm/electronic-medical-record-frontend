@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 export const personalInfoSchema = z.object({
@@ -9,6 +10,7 @@ export const personalInfoSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),
   country: z.string().min(1, 'Country is required'),
   city: z.string().min(1, 'City is required'),
+  speciality: z.string().min(1, 'Specialty is required'),
   uid: z.string().min(1, 'UID is required'),
   termsAccepted: z.boolean().refine((val) => val === true, {
     message: 'You must accept the terms and conditions',
