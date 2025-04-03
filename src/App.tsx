@@ -1,14 +1,18 @@
-import './App.css'
 
+import './App.css'
+import RegisterAsDoc from './modules/RegisterAsDoctor'
+import Login from './modules/Login';
+import {Route,Routes} from 'react-router-dom'
 function App() {
  
+  
   return (
-    <>
-      <div className="App">
-        <h1>React App</h1>
-      </div>
-    </>
-  )
-}
+    <Routes>
+      <Route path="/" element={<Login/>}/>
+      <Route path="/registerDoctor" element={<RegisterAsDoc/>}/>
+    </Routes>
+ 
+  );
+};
 
-export default App
+export default App;
