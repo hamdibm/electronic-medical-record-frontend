@@ -1,9 +1,12 @@
 
+
+
 import './App.css'
 import RegisterAsDoc from './modules/RegisterAsDoctor'
 import Login from './modules/Login';
 import {Route,Routes} from 'react-router-dom'
 function App() {
+
  
   
   return (
@@ -14,5 +17,6 @@ function App() {
  
   );
 };
+
 
 export default App;
