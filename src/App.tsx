@@ -1,17 +1,22 @@
 
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Registre from './components/register/RegisterAsPatient/RegisterPatient.tsx'; // Chemin relatif correct
-import './App.css'; // Import du CSS
 
+
+import './App.css'
+import RegisterAsDoc from './modules/RegisterAsDoctor'
+import Login from './modules/Login';
+import {Route,Routes} from 'react-router-dom'
 function App() {
+
+ 
+  
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/Registre" element={<Registre />} />
-      
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<Login/>}/>
+      <Route path="/registerDoctor" element={<RegisterAsDoc/>}/>
+    </Routes>
+ 
   );
-}
+};
+
 
 export default App;
