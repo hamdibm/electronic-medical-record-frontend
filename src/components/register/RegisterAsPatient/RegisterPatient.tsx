@@ -1,34 +1,48 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
+import axios from 'axios'
+import {isValidPassword} from "@/lib/validatePassword";
+
 
 interface FormData {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  phoneNumber: string;
+  phone: string;
   password: string;
   confirmPassword: string;
-  sex: string;
+  gender: string;
   country: string;
-  dateOfBirth: string;
+  age: string;
   city: string;
   agreeTerms: boolean;
 }
 
 const Register: React.FC = () => {
+  const [passwordError, setPasswordError] = useState('');
+  const [isPasswordValid, setIsPasswordValid] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>({
-    fullName: '',
+    
+    firstName: '',
+    lastName: '',
     email: '',
-    phoneNumber: '',
+    phone: '',
     password: '',
     confirmPassword: '',
-    sex: '',
+    gender: '',
     country: '',
-    dateOfBirth: '',
+    age: '',
     city: '',
     agreeTerms: false,
   });
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+  
+    if (name === 'password') {
+      const isValid = isValidPassword(value);
+      setIsPasswordValid(isValid);
+      setPasswordError(isValid ? '' : 'The password must contain at least 8 characters , An Uppercase letter , A Lowercase letter And a number');
+    }
     if (type === 'checkbox') {
       setFormData({
         ...formData,
@@ -41,10 +55,30 @@ const Register: React.FC = () => {
       });
     }
   };
+  const shouldDisableFields = !isPasswordValid;
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+       
+    if (!isPasswordValid) {
+      alert('Veuillez corriger votre mot de passe avant de soumettre');
+      return;
+    }
+
     console.log('Form Data:', formData);
+     alert('Form submitted successfully!');
+    axios.post("http://localhost:3000/api/auth/registerPatient", formData, {headers: {
+          'Content-Type': 'application/json'}}).then(result => { const { data, status } = result.data;
+
+        if(status.success) {
+          // Show success message
+          console.log("Message: ", data.message) 
+        } else {
+          // Show error message
+          console.log("Error Message: ", status.errorMessages)
+        }
+      })
+      .catch(error => console.log(error))
   };
 
   return (
@@ -55,17 +89,32 @@ const Register: React.FC = () => {
       >
         <h1 className="text-2xl font-bold mb-6 text-center">Register</h1>
         
-    {/* Full Name */}
+    {/* First Name */}
     <div className="mb-4">
       <label className="block text-sm font-medium text-gray-700">
-        Full Name
+        First Name
       </label>
       <input
       type="text"
-        name="fullName"
-        value={formData.fullName}
+        name="firstName"
+        value={formData.firstName}
         onChange={handleChange}
-        placeholder="Enter your Full Name"
+        placeholder="Enter your First Name"
+        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        required
+    />
+    </div>
+  {/* Last Name */}
+  <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700">
+        Last Name
+      </label>
+      <input
+      type="text"
+        name="lastName"
+        value={formData.lastName}
+        onChange={handleChange}
+        placeholder="Enter your First Name"
         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
     />
@@ -94,8 +143,8 @@ const Register: React.FC = () => {
       </label>
       <input
         type="tel"
-        name="phoneNumber"
-        value={formData.phoneNumber}
+        name="phone"
+        value={formData.phone}
         onChange={handleChange}
         placeholder="Enter your Phone Number"
         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -117,18 +166,20 @@ const Register: React.FC = () => {
         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
     />
-    <p className="text-xs text-gray-600 mt-2">
+     {passwordError && (
+            <div className="text-red-500 text-sm mt-1">{passwordError}</div>
+          )}
+    <div className="text-xs text-gray-600 mt-2">
     Password must contain:
     <ul className="list-disc list-inside">
       <li>At least 8 characters</li>
       <li>At least one Uppercase character (A-Z)</li>
       <li>At least one Lowercase character (a-z)</li>
       <li>At least one number (0-9)</li>
-      <li>
-        At least one Special character (~@@$%^&~,--\NUID;~.,7/)
-      </li>
+      
     </ul>
-  </p>
+
+  </div>
   </div>
 
     {/* Confirm Password */}
@@ -141,19 +192,21 @@ const Register: React.FC = () => {
       name="confirmPassword"
       value={formData.confirmPassword}
       onChange={handleChange}
+      disabled={shouldDisableFields}
       placeholder="Confirm your Password"
       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       required
     />
     </div>
 
-    {/* Sex */}
+    {/* gender */}
     <div className="mb-4">
     <label className="block text-sm font-medium text-gray-700">Sex</label>
     <select
-      name="sex"
-      value={formData.sex}
+      name="gender"
+      value={formData.gender}
       onChange={handleChange}
+      disabled={shouldDisableFields}
       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       required
 >
@@ -174,22 +227,24 @@ const Register: React.FC = () => {
         name="country"
         value={formData.country}
         onChange={handleChange}
+        disabled={shouldDisableFields}
         placeholder="Enter your Country"
         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
         />
     </div>
 
-    {/* Date of Birth */}
+    {/* age */}
     <div className="mb-4">
       <label className="block text-sm font-medium text-gray-700">
-        Date of Birth
+        Age
       </label>
       <input
-        type="date"
-        name="dateOfBirth"
-        value={formData.dateOfBirth}
+        type="number"
+        name="age"
+        value={formData.age}
         onChange={handleChange}
+        disabled={shouldDisableFields}
         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
     />
@@ -205,6 +260,7 @@ const Register: React.FC = () => {
         name="city"
         value={formData.city}
         onChange={handleChange}
+        disabled={shouldDisableFields}
         placeholder="Select your City"
         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         required
@@ -221,6 +277,7 @@ const Register: React.FC = () => {
               name="agreeTerms"
               checked={formData.agreeTerms}
               onChange={handleChange}
+              disabled={shouldDisableFields}
               className="mr-2"
               required
             />
@@ -249,6 +306,7 @@ const Register: React.FC = () => {
     </div>
   );
 };
+
 
 export default Register;
 

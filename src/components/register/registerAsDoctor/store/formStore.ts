@@ -19,7 +19,7 @@ const initialFormData: FormData = {
   country: '',
   city: '',
   speciality: '',
-  uid: '',
+  licenseNumber:'',
   termsAccepted: false,
   documents: [],
   profilePicture: null,

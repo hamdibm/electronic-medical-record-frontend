@@ -5,10 +5,11 @@ import * as z from 'zod';
 import { useFormStore } from '../../store/formStore';
 import { profilePictureSchema } from '../../schemas/formSchema';
 import { useDropzone } from 'react-dropzone';
-
+import axios from 'axios'
 type ProfilePictureInputs = z.infer<typeof profilePictureSchema>;
 
 const ProfilePictureStep: React.FC = () => {
+  
   const { formData, updateFormData, setCurrentStep } = useFormStore();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isHovering, setIsHovering] = useState(false);
@@ -24,7 +25,7 @@ const ProfilePictureStep: React.FC = () => {
 
   // Set initial preview URL when component mounts
   useEffect(() => {
-    // Only run this effect when formData.profilePicture changes
+  
     if (formData.profilePicture instanceof File) {
       // Create new object URL
       const newPreviewUrl = URL.createObjectURL(formData.profilePicture);
@@ -56,7 +57,7 @@ const ProfilePictureStep: React.FC = () => {
         URL.revokeObjectURL(previewUrl);
       }
       setPreviewUrl(URL.createObjectURL(file));
-    }
+  }
   }, [setValue, previewUrl]);
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -69,15 +70,35 @@ const ProfilePictureStep: React.FC = () => {
     maxSize: 5 * 1024 * 1024, // 5MB
   });
 
-  const onSubmit = (data: ProfilePictureInputs) => {
-    if (!data.profilePicture) {
+  const onSubmit =(data: ProfilePictureInputs) => {
+    if (!data.profilePicture ) {
       alert('Please select a profile picture before submitting.');
       return;
     }
     updateFormData(data);
     // Here you would typically submit the form data to your backend
+    
     console.log('Form submitted:', { ...formData, ...data });
     alert('Form submitted successfully!');
+    axios
+      .post("http://localhost:3000/api/auth/registerDoctor", formData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(result => {
+        const { data, status } = result.data;
+
+        if(status.success) {
+          // Show success message
+          console.log("Message: ", data.message)
+        } else {
+          // Show error message
+          console.log("Error Message: ", status.errorMessages)
+        }
+      })
+      .catch(error => console.log(error))
+      console.log('aziz')
     // You could redirect or show a success message here
   };
 
