@@ -24,8 +24,9 @@ const PersonalInfoStep: React.FC = () => {
       country: formData.country,
       city: formData.city,
       speciality: formData.speciality,
-      uid: formData.uid,
+      licenseNumber: formData.licenseNumber,
       termsAccepted: formData.termsAccepted,
+      
     },
   });
 
@@ -56,6 +57,7 @@ const PersonalInfoStep: React.FC = () => {
             />
             {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName.message}</p>}
           </div>
+        </div>
           
           <div>
             <label className="block text-sm font-medium mb-1">Last Name</label>
@@ -139,7 +141,22 @@ const PersonalInfoStep: React.FC = () => {
             />
             {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
           </div>
-          
+          <div>
+            <label className="block text-sm font-medium mb-1">License Number</label>
+            <Controller
+              name="licenseNumber"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="123-4567"
+                />
+              )}
+            />
+            {errors.licenseNumber && <p className="text-red-500 text-sm mt-1">{errors.licenseNumber.message}</p>}
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Country</label>
             <Controller
@@ -188,22 +205,7 @@ const PersonalInfoStep: React.FC = () => {
             {errors.speciality && <p className="text-red-500 text-sm mt-1">{errors.speciality.message}</p>}
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">UID</label>
-            <Controller
-              name="uid"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter your unique ID"
-                />
-              )}
-            />
-            {errors.uid && <p className="text-red-500 text-sm mt-1">{errors.uid.message}</p>}
-          </div>
-        </div>
+          
         
         <div className="mt-6 p-4 bg-gray-50 rounded-md">
           <label className="block text-sm font-medium mb-1">Terms & Conditions</label>

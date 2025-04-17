@@ -8,10 +8,11 @@ export const personalInfoSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string().min(8, 'Confirm password is required'),
   phone: z.string().min(10, 'Phone number is required'),
+  licenseNumber: z.string().min(10, 'License Number is required'),
   country: z.string().min(1, 'Country is required'),
   city: z.string().min(1, 'City is required'),
   speciality: z.string().min(1, 'Specialty is required'),
-  uid: z.string().min(1, 'UID is required'),
+ 
   termsAccepted: z.boolean().refine((val) => val === true, {
     message: 'You must accept the terms and conditions',
   }),

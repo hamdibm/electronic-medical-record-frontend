@@ -6,7 +6,31 @@ import Check from "../commonComponents/checkboxComp";
 import ForgetPassword from "./ForgetPassword";
 import RoleSelection from "../login/RoleSelection";
 import { Button } from "../ui/button";
+import { useState } from "react";
+import axios from "axios";
+
 export default function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const response = await axios.post("http://localhost:3000/api/auth/login", {
+        email,
+        password,
+      });
+
+      console.log("Login success:", response.data);
+
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.response?.data?.errorMessages || "Login failed");
+    }
+  };
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-200 p-4">
       <form className="flex flex-col sm:flex-row bg-white rounded-lg shadow-lg w-full max-w-4xl overflow-hidden">
@@ -29,12 +53,17 @@ export default function LoginForm() {
             label="Email"
             type="email"
             placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
           <InputWithLabel
             id="password"
             label="Password"
             type="password"
             placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+        
           />
 
           <div className="space-y-2">
@@ -42,9 +71,13 @@ export default function LoginForm() {
             <ForgetPassword />
           </div>
 
-          <button className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer">
+          <button 
+          onClick={handleLogin}
+          className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer" >
             Login
+            {error && <p className="text-red-500 text-sm">{error}</p>}
           </button>
+         
 
           {/* Divider */}
           <div className="flex items-center my-2 sm:my-4">

@@ -12,6 +12,7 @@ export default function RoleSelection() {
     className="p-4 w-1/2 rounded-md bg-transparent shadow-md cursor-pointer 
     hover:bg-blue-500 transition-all duration-500 relative overflow-hidden 
     group"
+    onClick={()=> navigate("/registerPatient") }
     
   >
     <div className="flex items-center justify-center space-x-2">

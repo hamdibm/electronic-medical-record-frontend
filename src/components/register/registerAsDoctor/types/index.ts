@@ -9,11 +9,11 @@ export interface FormData {
     country: string;
     city: string;
     speciality: string;
-    uid: string;
+    licenseNumber: string;
     termsAccepted: boolean;
-    
+   
     // Step 2: Documents
-    documents: File[];
+    documents:  string[] | File[] ;
     
     // Step 3: Profile Picture
     profilePicture?: File | undefined | null;

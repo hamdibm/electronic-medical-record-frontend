@@ -5,6 +5,7 @@ import { useFormStore } from '../../store/formStore';
 import { documentsSchema } from '../../schemas/formSchema';
 import { useDropzone } from 'react-dropzone';
 import * as z from 'zod';
+import axios from 'axios'
 
 type DocumentsUploadInputs = z.infer<typeof documentsSchema>;
 
@@ -14,7 +15,9 @@ const DocumentsUploadStep: React.FC = () => {
   const { handleSubmit, setValue, watch, formState: { errors } } = useForm<DocumentsUploadInputs>({
     resolver: zodResolver(documentsSchema),
     defaultValues: {
-        documents: (formData.documents || []).filter(file => file && file.size > 0),
+        documents: (formData.documents || []).filter(
+  (file): file is File => file instanceof File && file.size > 0
+),
     },
   });
 
@@ -47,9 +50,31 @@ const DocumentsUploadStep: React.FC = () => {
     setValue('documents', updatedFiles);
   };
 
-  const onSubmit = (data: DocumentsUploadInputs) => {
-    updateFormData(data);
-    setCurrentStep(3);
+  const onSubmit = async (data: DocumentsUploadInputs) => {
+    try {
+      const uploadedUrls: string[] = [];
+  
+      for (const file of data.documents) {
+        const form = new FormData();
+        form.append('file', file);
+        form.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+        form.append('cloud_name', import.meta.env.VITE_CLOUDINARY_CLOUD_NAME);
+  
+        const response = await axios.post(
+          `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/auto/upload`,
+          form
+        );
+  
+        uploadedUrls.push(response.data.secure_url);
+      }
+  
+      updateFormData({ documents: uploadedUrls });
+      setCurrentStep(3);
+  
+    } catch (error) {
+      console.error('Document upload failed:', error);
+      alert('Failed to upload documents.');
+    }
   };
 
   const onBack = () => {
