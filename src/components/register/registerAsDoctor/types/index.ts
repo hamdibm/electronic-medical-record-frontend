@@ -13,7 +13,7 @@ export interface FormData {
     termsAccepted: boolean;
    
     // Step 2: Documents
-    documents: File[];
+    documents:  string[] | File[] ;
     
     // Step 3: Profile Picture
     profilePicture?: File | undefined | null;

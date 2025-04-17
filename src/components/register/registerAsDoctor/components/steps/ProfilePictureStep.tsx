@@ -6,6 +6,7 @@ import { useFormStore } from '../../store/formStore';
 import { profilePictureSchema } from '../../schemas/formSchema';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios'
+
 type ProfilePictureInputs = z.infer<typeof profilePictureSchema>;
 
 const ProfilePictureStep: React.FC = () => {
@@ -70,38 +71,57 @@ const ProfilePictureStep: React.FC = () => {
     maxSize: 5 * 1024 * 1024, // 5MB
   });
 
-  const onSubmit =(data: ProfilePictureInputs) => {
-    if (!data.profilePicture ) {
+  const onSubmit = async (data: ProfilePictureInputs) => {
+    if (!data.profilePicture) {
       alert('Please select a profile picture before submitting.');
       return;
     }
-    updateFormData(data);
-    // Here you would typically submit the form data to your backend
-    
-    console.log('Form submitted:', { ...formData, ...data });
-    alert('Form submitted successfully!');
-    axios
-      .post("http://localhost:3000/api/auth/registerDoctor", formData, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-      .then(result => {
-        const { data, status } = result.data;
+  
+    const form = new FormData();
+    form.append('file', data.profilePicture);
+    form.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET); 
+    form.append('cloud_name', import.meta.env.VITE_CLOUDINARY_CLOUD_NAME);
+  
+    try {
+      const response = await axios.post(
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        form
+      );
+  
+      const imageUrl = response.data.secure_url;
+      
+      // Mettre à jour le store avec l’URL au lieu du fichier
+      updateFormData({ profilePicture: imageUrl });
+  
+      // Envoyer le formulaire final
+      const formToSend = { ...formData, profilePicture: imageUrl, documents: formData.documents  };
+      console.log('Data being sent to backend:', formToSend);
 
-        if(status.success) {
-          // Show success message
-          console.log("Message: ", data.message)
-        } else {
-          // Show error message
-          console.log("Error Message: ", status.errorMessages)
-        }
-      })
-      .catch(error => console.log(error))
-      console.log('aziz')
-    // You could redirect or show a success message here
+      try {
+        const result = await axios.post(
+          'http://localhost:3000/api/auth/registerDoctor',
+          formToSend,
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+  
+      const { data, status } = result.data;
+      if (status.success) {
+        console.log('Message: ', data.message);
+        alert('Form submitted successfully!');
+      } else {
+        console.log('Error Message: ', status.errorMessages);
+      }
+  
+    } catch (backendError) {
+      console.error('Backend registration failed:', backendError);
+      alert('Doctor registration failed.');
+    }
+  } catch (uploadError) {
+    console.error('Cloudinary upload failed:', uploadError);
+    alert('Image upload failed.');
+  }
   };
-
+  
   const onBack = () => {
     setCurrentStep(2);
   };
