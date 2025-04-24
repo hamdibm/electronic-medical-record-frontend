@@ -1,0 +1,616 @@
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import {
+  Search,
+  FileText,
+  Clock,
+  MessageSquare,
+  Settings,
+  User,
+  Folder,
+  ClipboardList,
+  Send,
+  ArrowLeft,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { CloseCollaborationDialog } from "./close-collaboration-dialog"
+import { RightSidebar } from "./right-sidebar"
+import { CommentThread } from "./comment-thread"
+import { NotificationsDropdown } from "./notifications-dropdown"
+import { CaseExplorer } from "./case-explorer"
+import { PatientRecords } from "./patient-records"
+import { PatientRecordDetail } from "./patient-record-details"
+import {toast} from "sonner"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+// Sample data for cases
+const cases = [
+  {
+    id: "MED-2023-1234",
+    title: "Unusual Cardiac Symptoms",
+    patientId: "P-78901",
+    patientName: "John Smith",
+    description:
+      "Patient presents with atypical chest pain and irregular ECG patterns. Initial tests show elevated cardiac enzymes but inconclusive stress test results.",
+    status: "Open",
+    createdAt: "2023-04-18T10:30:00Z",
+    participantCount: 4,
+    commentCount: 8,
+    attachmentCount: 2,
+    tags: ["Respiratory", "Consultation", "Urgent"],
+    daysActive: 3,
+  },
+  {
+    id: "MED-2023-1238",
+    title: "Diabetes Management Review",
+    patientId: "P-78901",
+    patientName: "John Smith",
+    description:
+      "Quarterly review of diabetes management plan and medication adjustments. Patient shows improved glucose control with current regimen.",
+    status: "Closed",
+    createdAt: "2023-04-10T14:30:00Z",
+    participantCount: 2,
+    commentCount: 6,
+    attachmentCount: 4,
+    tags: ["Diabetes", "Chronic", "Medication"],
+    daysActive: 11,
+  },
+]
+
+export default function CollaborationCase() {
+  
+  const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false)
+  const [newComment, setNewComment] = useState("")
+  const [activeView, setActiveView] = useState<
+    "case-detail" | "my-cases" | "patient-records" | "patient-detail" | "settings"
+  >("patient-records")
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [activeCase, setActiveCase] = useState<(typeof cases)[0] | null>(null)
+  const [quickFilter, setQuickFilter] = useState<string | null>(null)
+  interface Comment {
+    id: string
+    author: {
+      name: string
+      avatar: string
+      specialty: string
+    }
+    content: string
+    timestamp: string
+    likes: number
+    userLiked: boolean
+    replies: Comment[]
+  }
+
+  const [comments, setComments] = useState<Comment[]>([])
+  const [isAttachingFiles, setIsAttachingFiles] = useState(false)
+
+  // Load case details when selectedCaseId changes
+  useEffect(() => {
+    if (selectedCaseId) {
+      const caseData = cases.find((c) => c.id === selectedCaseId)
+      if (caseData) {
+        setActiveCase(caseData)
+      }
+    } else {
+      setActiveCase(null)
+    }
+  }, [selectedCaseId])
+
+  const handleCaseSelect = (caseId: string) => {
+    setSelectedCaseId(caseId)
+    setActiveView("case-detail")
+    // Simulate loading comments
+    setTimeout(() => {
+      // This would be a real API call in a production app
+      setComments([
+        {
+          id: "1",
+          author: {
+            name: "Dr. Michael Chen",
+            avatar: "/placeholder.svg?height=40&width=40",
+            specialty: "Radiologist",
+          },
+          content:
+            "Based on the ECG patterns and enzyme levels, we should consider conducting a coronary angiogram for better visualization of the coronary arteries.",
+          timestamp: "1 day ago",
+          likes: 2,
+          userLiked: false,
+          replies: [],
+        },
+        {
+          id: "2",
+          author: {
+            name: "Dr. Emily Rodriguez",
+            avatar: "/placeholder.svg?height=40&width=40",
+            specialty: "Internal Medicine",
+          },
+          content:
+            "I agree with Dr. Chen. The atypical presentation suggests we need more detailed imaging. I also recommend a 24-hour Holter monitor to catch any intermittent arrhythmias.",
+          timestamp: "12 hours ago",
+          likes: 2,
+          userLiked: false,
+          replies: [],
+        },
+      ])
+    }, 300)
+  }
+
+  const handlePatientSelect = (patientId: string) => {
+    setSelectedPatientId(patientId)
+    setSelectedCaseId(null)
+    setActiveView("patient-detail")
+  }
+
+  const handleBackFromCase = () => {
+    if (selectedPatientId) {
+      setActiveView("patient-detail")
+    } else {
+      setActiveView("patient-records")
+    }
+    setSelectedCaseId(null)
+  }
+
+  const handlePostComment = () => {
+    if (!newComment.trim()) return
+
+    // Add the new comment to the comments array
+    const newCommentObj = {
+      id: `comment-${Date.now()}`,
+      author: {
+        name: "Dr. Sarah Johnson", // Current user
+        avatar: "/placeholder.svg?height=40&width=40",
+        specialty: "Cardiologist",
+      },
+      content: newComment,
+      timestamp: "Just now",
+      likes: 0,
+      userLiked: false,
+      replies: [],
+    }
+
+    setComments([...comments, newCommentObj])
+    setNewComment("")
+
+    // Show success toast
+    toast.success(
+      
+       "Your comment has been added to the discussion.",
+    )
+  }
+
+  const handleBackToPatientList = () => {
+    setActiveView("patient-records")
+    setSelectedPatientId(null)
+  }
+
+  const handleCloseCase = () => {
+    setIsCloseDialogOpen(true)
+  }
+
+  const handleShareCase = () => {
+    toast.success(
+       
+       "Collaboration invitation sent to the selected team members.",
+    )
+  }
+
+  const handleAttachFiles = () => {
+    setIsAttachingFiles(true)
+    // Simulate file selection dialog
+    setTimeout(() => {
+      setIsAttachingFiles(false)
+      toast.success( "Your files have been attached to the comment.",
+      )
+    }, 1500)
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    toast(`Showing results for "${searchQuery}"`,
+    )
+  }
+
+  const handleQuickFilterSelect = (filter: string) => {
+    setQuickFilter(filter)
+    toast(
+       `Showing ${filter.toLowerCase()}`,
+    )
+  }
+
+  const handleSettingsClick = () => {
+    setActiveView("settings")
+  }
+
+  return (
+    <div className="flex h-screen w-full">
+      {/* Main content */}
+      <div className="flex flex-1 flex-col">
+        {/* Header */}
+        <header className="flex h-14 items-center gap-4 border-b bg-white px-6">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600 text-white">
+              <FileText className="h-4 w-4" />
+            </div>
+            <span className="font-semibold text-lg">MedCollab</span>
+          </div>
+          <form className="relative flex-1 max-w-md" onSubmit={handleSearch}>
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search cases or patients..."
+              className="w-full bg-gray-50 pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </form>
+          <div className="ml-auto flex items-center gap-4">
+            {/* Notifications Dropdown */}
+            <NotificationsDropdown />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Avatar className="cursor-pointer">
+                  <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Dr. Sarah Johnson" />
+                  <AvatarFallback>SJ</AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSettingsClick}>Settings</DropdownMenuItem>
+                <DropdownMenuItem>Help</DropdownMenuItem>
+                <DropdownMenuItem>Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        {/* Main content area */}
+        <div className="flex flex-1">
+          {/* Left sidebar - Navigation */}
+          <div className="w-56 border-r bg-gray-50 flex flex-col">
+            <nav className="flex-1 p-3 space-y-1">
+              <div
+                className={`flex items-center justify-between rounded-md px-3 py-2 ${activeView === "my-cases" ? "bg-indigo-100 text-indigo-900" : "hover:bg-gray-100 cursor-pointer"}`}
+                onClick={() => {
+                  setActiveView("my-cases")
+                  setSelectedPatientId(null)
+                  setSelectedCaseId(null)
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Folder className="h-4 w-4" />
+                  <span className="text-sm font-medium">My Cases</span>
+                </div>
+                <Badge variant="outline" className="bg-white">
+                  5
+                </Badge>
+              </div>
+
+              <div
+                className={`flex items-center justify-between rounded-md px-3 py-2 ${
+                  activeView === "patient-records" || activeView === "patient-detail"
+                    ? "bg-indigo-100 text-indigo-900"
+                    : "hover:bg-gray-100 cursor-pointer"
+                }`}
+                onClick={() => {
+                  setActiveView("patient-records")
+                  setSelectedPatientId(null)
+                  setSelectedCaseId(null)
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  <span className="text-sm font-medium">Patient Records</span>
+                </div>
+              </div>
+
+              <div
+                className={`flex items-center justify-between rounded-md px-3 py-2 ${
+                  activeView === "settings" ? "bg-indigo-100 text-indigo-900" : "hover:bg-gray-100 cursor-pointer"
+                }`}
+                onClick={handleSettingsClick}
+              >
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  <span className="text-sm font-medium">Settings</span>
+                </div>
+              </div>
+            </nav>
+
+            <div className="p-3 border-t">
+              <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">QUICK FILTERS</h3>
+              <div className="space-y-1">
+                <div
+                  className={`flex items-center justify-between px-3 py-1 text-sm ${
+                    quickFilter === "All Cases" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100"
+                  } rounded cursor-pointer`}
+                  onClick={() => handleQuickFilterSelect("All Cases")}
+                >
+                  <span>All Cases</span>
+                  <span className="text-gray-500">45</span>
+                </div>
+                <div
+                  className={`flex items-center justify-between px-3 py-1 text-sm ${
+                    quickFilter === "Pending Review" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100"
+                  } rounded cursor-pointer`}
+                  onClick={() => handleQuickFilterSelect("Pending Review")}
+                >
+                  <span>Pending Review</span>
+                  <span className="text-gray-500">8</span>
+                </div>
+                <div
+                  className={`flex items-center justify-between px-3 py-1 text-sm ${
+                    quickFilter === "Recently Updated" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100"
+                  } rounded cursor-pointer`}
+                  onClick={() => handleQuickFilterSelect("Recently Updated")}
+                >
+                  <span>Recently Updated</span>
+                  <span className="text-gray-500">12</span>
+                </div>
+                <div
+                  className={`flex items-center justify-between px-3 py-1 text-sm ${
+                    quickFilter === "Closed Cases" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100"
+                  } rounded cursor-pointer`}
+                  onClick={() => handleQuickFilterSelect("Closed Cases")}
+                >
+                  <span>Closed Cases</span>
+                  <span className="text-gray-500">156</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main content */}
+          <div className="flex-1 overflow-auto">
+            {activeView === "case-detail" && activeCase ? (
+              <div className="mx-auto max-w-4xl p-6">
+                {/* Add back button at the top */}
+                <div className="flex items-center gap-3 mb-6">
+                  <Button variant="ghost" size="sm" className="gap-1" onClick={handleBackFromCase}>
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to {selectedPatientId ? "Patient Record" : "Patient Records"}
+                  </Button>
+                </div>
+
+                {/* GitHub-like title section */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
+                    <span>Case ID: #{activeCase.id}</span>
+                    <Badge
+                      className={activeCase.status === "Open" ? "bg-indigo-600 text-white" : "bg-gray-600 text-white"}
+                    >
+                      {activeCase.status}
+                    </Badge>
+                  </div>
+
+                  <h1 className="text-2xl font-bold">{activeCase.title}</h1>
+
+                  <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" />
+                      <span>{activeCase.participantCount} Participating Doctors</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>
+                        Created{" "}
+                        {new Date(activeCase.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-6 mb-6">
+                  <div className="col-span-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Initial Assessment</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm">{activeCase.description}</p>
+                        <div className="mt-4 flex gap-2">
+                          {activeCase.tags.map((tag, index) => (
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className={tag === "Urgent" ? "bg-amber-100 text-amber-700" : "bg-gray-100"}
+                            >
+                              #{tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Case Statistics</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm">Days Active</span>
+                            <span className="font-medium">{activeCase.daysActive}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Participating Doctors</span>
+                            <span className="font-medium">{activeCase.participantCount}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Comments</span>
+                            <span className="font-medium">{activeCase.commentCount}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Attachments</span>
+                            <span className="font-medium">{activeCase.attachmentCount}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <h2 className="text-xl font-semibold">Discussion Thread</h2>
+                </div>
+
+                {/* Comment Thread Component */}
+                <div className="mb-6">
+                  <CommentThread initialComments={comments} />
+                </div>
+
+                <div className="rounded-lg border bg-card p-4">
+                  <Textarea
+                    placeholder="Add your medical opinion..."
+                    className="min-h-24 resize-none border-0 focus-visible:ring-0 p-0"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                  />
+                  <div className="mt-4 flex items-center justify-between">
+                    <Button variant="outline" size="sm" onClick={handleAttachFiles} disabled={isAttachingFiles}>
+                      {isAttachingFiles ? "Attaching..." : "Attach files"}
+                    </Button>
+                    <Button
+                      className="bg-indigo-600 hover:bg-indigo-700 gap-1"
+                      disabled={!newComment.trim()}
+                      onClick={handlePostComment}
+                    >
+                      <Send className="h-4 w-4" />
+                      Post Comment
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center justify-between">
+                  <Button
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => {
+                      document.querySelector("textarea")?.focus()
+                    }}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Add Comment
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleCloseCase} disabled={activeCase.status === "Closed"}>
+                      Close Case
+                    </Button>
+                    <Button variant="outline" onClick={handleShareCase}>
+                      Share with Team
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : activeView === "my-cases" ? (
+              <CaseExplorer onCaseSelect={handleCaseSelect} />
+            ) : activeView === "patient-records" ? (
+              <PatientRecords onPatientSelect={handlePatientSelect} />
+            ) : activeView === "settings" ? (
+              <div className="p-6">
+                <h1 className="text-2xl font-bold mb-6">Settings</h1>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Account Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Name</label>
+                          <Input defaultValue="Dr. Sarah Johnson" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Email</label>
+                          <Input defaultValue="sarah.johnson@medcollab.com" className="mt-1" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Specialty</label>
+                        <Input defaultValue="Cardiology" className="mt-1" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Notification Preferences</label>
+                        <div className="mt-2 space-y-2">
+                          <div className="flex items-center">
+                            <input type="checkbox" id="email-notif" className="mr-2" defaultChecked />
+                            <label htmlFor="email-notif" className="text-sm">
+                              Email notifications
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input type="checkbox" id="case-notif" className="mr-2" defaultChecked />
+                            <label htmlFor="case-notif" className="text-sm">
+                              Case updates
+                            </label>
+                          </div>
+                          <div className="flex items-center">
+                            <input type="checkbox" id="mention-notif" className="mr-2" defaultChecked />
+                            <label htmlFor="mention-notif" className="text-sm">
+                              Mentions
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="pt-4">
+                        <Button
+                          className="bg-indigo-600 hover:bg-indigo-700"
+                          onClick={() => {
+                            toast.success( "Your account settings have been updated successfully.",
+                            )
+                          }}
+                        >
+                          Save Changes
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <PatientRecordDetail
+                patientId={selectedPatientId!}
+                onBack={handleBackToPatientList}
+                onCaseSelect={handleCaseSelect}
+              />
+            )}
+          </div>
+
+          {/* Right sidebar with tabs for Doctors and Related Cases */}
+          {activeView === "case-detail" && <RightSidebar />}
+        </div>
+      </div>
+
+      {/* Close case dialog */}
+      <CloseCollaborationDialog
+        open={isCloseDialogOpen}
+        onOpenChange={setIsCloseDialogOpen}
+        onCaseClosed={() => {
+          if (activeCase) {
+            // Update the case status
+            const updatedCase = { ...activeCase, status: "Closed" }
+            setActiveCase(updatedCase)
+
+            toast.success( "The collaboration case has been closed successfully.",
+            )
+          }
+        }}
+      />
+    </div>
+  )
+}

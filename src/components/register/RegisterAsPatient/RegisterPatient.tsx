@@ -67,18 +67,18 @@ const Register: React.FC = () => {
 
     console.log('Form Data:', formData);
      alert('Form submitted successfully!');
-    axios.post("http://localhost:3000/api/auth/registerPatient", formData, {headers: {
-          'Content-Type': 'application/json'}}).then(result => { const { data, status } = result.data;
+    axios.post("http://localhost:3970/api/auth/registerPatient", formData, {headers: {
+          'Content-Type': 'application/json'}}).then(result => { const { data, status } = result;
 
-        if(status.success) {
+        if (status === 200 && data.success) {
           // Show success message
-          console.log("Message: ", data.message) 
+          console.log("Message: ", data.message);
         } else {
           // Show error message
-          console.log("Error Message: ", status.errorMessages)
+          console.log("Error Message: ", data.errorMessages);
         }
       })
-      .catch(error => console.log(error))
+      .catch(error => console.error("Error: ", error));
   };
 
   return (
