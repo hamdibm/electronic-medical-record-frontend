@@ -1,13 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   ArrowLeft,
   Calendar,
   FileText,
   Heart,
   Phone,
-  // Mail,
   Home,
   Shield,
   Plus,
@@ -40,9 +39,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { findRecordsForSpecificDoctor } from "../../assets/data/records"
+import { findRecordsForSpecificDoctor, updateRecord } from "../../assets/data/records"
 import { NewCaseDialog } from "./new-case-dialog"
 import { getDecodedToken } from "@/lib/jwtUtils"
+import { getPrescriptions } from "@/assets/data/prescriptions"
+import { Prescription } from "@/types"
 
 const token = getDecodedToken();
 const doctorId = token?.userId;
@@ -69,61 +70,34 @@ interface PatientRecordDetailProps {
   onBack: () => void
   onCaseSelect?: (caseId: string) => void
 }
+// interface IDoctor {
+//   id: string
+//   name: string
+//   specialty: string
+//   avatar: string
+//   isOnline?: boolean
+// }
 
-// Sample data for doctors
-const doctors = [
-  {
-    id: "1",
-    name: "Dr. Sarah Johnson",
-    specialty: "Cardiology",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "2",
-    name: "Dr. Michael Chen",
-    specialty: "Radiology",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "3",
-    name: "Dr. Emily Rodriguez",
-    specialty: "Internal Medicine",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "4",
-    name: "Dr. James Wilson",
-    specialty: "Surgery",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: false,
-  },
-  {
-    id: "5",
-    name: "Dr. Sarah Chen",
-    specialty: "Pulmonology",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "6",
-    name: "Dr. David Kim",
-    specialty: "Neurology",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: false,
-  },
-  {
-    id: "7",
-    name: "Dr. Lisa Wong",
-    specialty: "Endocrinology",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-]
+// let doctors:  IDoctor[]= [];
+// try {
+//   doctors = await getDoctors();
+//   console.log("Fetched doctors:", doctors);
+// } catch (err) {
+//   console.error("Error fetching doctors:", err);
+// }
+
+
+// const prescriptions = unstructuredPrescriptions.map((p,index) => ({
+//   ...p,
+//   specialty: p.speciality ,
+//   id: index+1,
+//   status: "Active",
+// }));
+
+
 
 // Sample clinical notes organized by specialty
+// In the clinicalNotes array definition
 const clinicalNotes = [
   {
     id: "1",
@@ -132,7 +106,7 @@ const clinicalNotes = [
       "Patient presents for annual checkup. Blood pressure is 130/85, which is slightly elevated from previous visit. Discussed lifestyle modifications including reduced sodium intake and increased physical activity. Patient reports compliance with current medications. ECG shows normal sinus rhythm. Recommended follow-up in 3 months to reassess blood pressure.",
     date: "2023-04-10",
     specialty: "Cardiology",
-    doctor: doctors[0], // Dr. Sarah Johnson
+    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
     tags: ["Checkup", "Hypertension"],
   },
   {
@@ -142,9 +116,10 @@ const clinicalNotes = [
       "Conducted comprehensive medication review. Patient reports good tolerance of current regimen. Metformin dosage adjusted from 500mg to 750mg twice daily due to persistent elevated fasting glucose levels. Discussed potential side effects and monitoring requirements. Patient demonstrates good understanding of medication purposes and administration.",
     date: "2023-02-15",
     specialty: "Endocrinology",
-    doctor: doctors[6], // Dr. Lisa Wong
+    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
     tags: ["Medication", "Diabetes"],
   },
+  // Continue with the same pattern for the remaining clinical notes
   {
     id: "3",
     title: "Respiratory Assessment",
@@ -152,7 +127,7 @@ const clinicalNotes = [
       "Patient reports occasional shortness of breath during moderate exertion. Lung examination reveals clear breath sounds bilaterally. No wheezing or crackles. Oxygen saturation 97% at rest. Recommended pulmonary function testing to establish baseline. Discussed importance of avoiding respiratory irritants.",
     date: "2023-03-05",
     specialty: "Pulmonology",
-    doctor: doctors[4], // Dr. Sarah Chen
+    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
     tags: ["Respiratory", "Assessment"],
   },
   {
@@ -162,62 +137,12 @@ const clinicalNotes = [
       "Patient reports intermittent headaches, primarily frontal, lasting 2-3 hours. No aura or associated symptoms. Neurological examination normal. No focal deficits. Recommended headache diary and over-the-counter analgesics as needed. Will reassess in 6 weeks.",
     date: "2023-01-20",
     specialty: "Neurology",
-    doctor: doctors[5], // Dr. David Kim
+    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
     tags: ["Headache", "Consultation"],
   },
 ]
 
-// Sample prescriptions organized by specialty
-const prescriptions = [
-  {
-    id: "1",
-    medication: "Lisinopril",
-    dosage: "10mg",
-    frequency: "Once daily",
-    instructions: "Take with food. Avoid alcohol while taking this medication.",
-    date: "2023-04-10",
-    duration: "Ongoing",
-    specialty: "Cardiology",
-    doctor: doctors[0], // Dr. Sarah Johnson
-    status: "Active",
-  },
-  {
-    id: "2",
-    medication: "Metformin",
-    dosage: "750mg",
-    frequency: "Twice daily",
-    instructions: "Take with meals to minimize gastrointestinal side effects.",
-    date: "2023-02-15",
-    duration: "Ongoing",
-    specialty: "Endocrinology",
-    doctor: doctors[6], // Dr. Lisa Wong
-    status: "Active",
-  },
-  {
-    id: "3",
-    medication: "Albuterol Inhaler",
-    dosage: "90mcg",
-    frequency: "As needed",
-    instructions: "Use 2 puffs every 4-6 hours as needed for shortness of breath.",
-    date: "2023-03-05",
-    duration: "Ongoing",
-    specialty: "Pulmonology",
-    doctor: doctors[4], // Dr. Sarah Chen
-    status: "Active",
-  },
-  {
-    id: "4",
-    medication: "Sumatriptan",
-    dosage: "50mg",
-    frequency: "As needed for migraines",
-    instructions: "Take at first sign of migraine. Do not exceed 200mg in 24 hours.",
-    date: "2023-01-20",
-    duration: "Ongoing",
-    specialty: "Neurology",
-    doctor: doctors[5], // Dr. David Kim
-    status: "Active",
-  },
-]
+
 
 // Sample medical files organized by specialty
 const medicalFiles = [
@@ -228,7 +153,7 @@ const medicalFiles = [
     fileSize: "2.4 MB",
     date: "2023-04-10",
     specialty: "Cardiology",
-    doctor: doctors[0], // Dr. Sarah Johnson
+    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Dr. Sarah Johnson
     tags: ["ECG", "Cardiology"],
   },
   {
@@ -238,7 +163,7 @@ const medicalFiles = [
     fileSize: "1.8 MB",
     date: "2023-04-08",
     specialty: "Internal Medicine",
-    doctor: doctors[2], // Dr. Emily Rodriguez
+    doctor: { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Dr. Emily Rodriguez
     tags: ["Lab Results", "Blood Work"],
   },
   {
@@ -248,7 +173,7 @@ const medicalFiles = [
     fileSize: "3.2 MB",
     date: "2023-03-05",
     specialty: "Pulmonology",
-    doctor: doctors[4], // Dr. Sarah Chen
+    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Dr. Sarah Chen
     tags: ["X-Ray", "Imaging", "Chest"],
   },
   {
@@ -258,7 +183,7 @@ const medicalFiles = [
     fileSize: "15.6 MB",
     date: "2023-01-20",
     specialty: "Neurology",
-    doctor: doctors[5], // Dr. David Kim
+    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Dr. David Kim
     tags: ["MRI", "Imaging", "Neurology"],
   },
 ]
@@ -300,6 +225,8 @@ function getSpecialtyIcon(specialty: string) {
   }
 }
 
+
+
 export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: PatientRecordDetailProps) {
   const [activeTab, setActiveTab] = useState("overview")
   const [isAddNoteDialogOpen, setIsAddNoteDialogOpen] = useState(false)
@@ -307,10 +234,120 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
   const [isAddFileDialogOpen, setIsAddFileDialogOpen] = useState(false)
   const [isNewCaseDialogOpen, setIsNewCaseDialogOpen] = useState(false)
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null)
+  
+  
+  const [PrescriptionData, setPrescriptionData] = useState<Prescription>({
+    id: Date.now().toString(), // Generate a unique ID
+    type: "Prescription",
+    specialty: "",
+    status: "Active", // Default to Active
+    MedicationName: "",
+    Dosage: "",
+    Frequency: "",
+    Duration: "",
+    quantity: "",
+    doctorID: doctorId || "", // Use current doctor's ID
+    instructions: "",
+    AdditionalNotes: ""
+  });
+  const handlePrescriptionChange = (field :string, value:string) => {
+    setPrescriptionData({
+      ...PrescriptionData,
+      [field]: value
+    });
+  };
 
+const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+useEffect(() => {
+  const fetchPrescriptions = async () => {
+    if (patientId) {
+      const fetchedPrescriptions = await getPrescriptions(doctorId as string, patientId);
+        
+        // Normalize prescription data to ensure all fields are present
+        const normalizedPrescriptions = fetchedPrescriptions.map(prescription => ({
+          id: prescription.id || Date.now().toString(),
+          type: prescription.type || "Prescription",
+          specialty: prescription.specialty || "",
+          status: prescription.status || "Active",
+          MedicationName: prescription.MedicationName || "",
+          Dosage: prescription.Dosage || "",
+          Frequency: prescription.Frequency || "",
+          Duration: prescription.Duration || "",
+          quantity: prescription.quantity || "",
+          doctorID: prescription.doctorID || doctorId || "",
+          instructions: prescription.instructions || "",
+          AdditionalNotes: prescription.AdditionalNotes || ""
+        }));
+        
+        setPrescriptions(normalizedPrescriptions);
+    }
+  };
+  fetchPrescriptions();
+  
+}, [patientId]);
+console.log("Fetched prescriptions:", prescriptions);
+  
+const handleAddPrescription = async () => {
+  try {
+    // Create a complete prescription object
+    const newPrescription: Prescription = {
+      ...PrescriptionData,
+      id: `${Math.random().toString(36)}`, // Generate a unique ID
+      status: "Active",
+      doctorID: doctorId || "",
+      type: "Prescription"
+    };
+    
+    // Add the new prescription to the UI state immediately
+    setPrescriptions(prev => [...prev, newPrescription]);
+    
+    // Prepare the prescription data for blockchain
+    const typeConvertedPrescription = JSON.stringify({
+      ...newPrescription
+    });
+    
+    // Update the record in the blockchain
+    await updateRecord(
+      patientId,
+      doctorId as string,
+      newPrescription.specialty,
+      "", // phoneNumber (not updating)
+      "", // address (not updating)
+      typeConvertedPrescription, // prescriptions
+      "null", // notes (not updating)
+      "null", // document (not updating)
+      "null", // updated basicInfo
+      "null" // collab (not updating)
+    );
+    
+    // Reset the form
+    setPrescriptionData({
+      id: "",
+      specialty: "",
+      status: "Active",
+      type: "Prescription",
+      MedicationName: "",
+      Dosage: "",
+      Frequency: "",
+      Duration: "",
+      quantity: "",
+      doctorID: doctorId || "",
+      instructions: "",
+      AdditionalNotes: ""
+    });
+    
+    // Close the dialog
+    setIsAddPrescriptionDialogOpen(false);
+    
+    // Optional: Show success notification
+    console.log("Prescription added successfully!");
+  } catch (error) {
+    console.error("Error adding prescription:", error);
+    // Optional: Show error notification
+  }
+};
   // Find the patient by ID
   const record = records?.find((p) => p.id === patientId)
-
   // Group notes, prescriptions, and files by specialty
   const notesBySpecialty = groupBySpecialty(clinicalNotes)
   const prescriptionsBySpecialty = groupBySpecialty(prescriptions)
@@ -557,15 +594,15 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between">
-                                    <h4 className="font-medium">{medication.medication}</h4>
+                                    <h4 className="font-medium">{medication.MedicationName}</h4>
                                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                       {medication.status}
                                     </Badge>
                                   </div>
                                   <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                                    <span>Dosage: {medication.dosage}</span>
+                                    <span>Dosage: {medication.Dosage}</span>
                                     <span>•</span>
-                                    <span>Frequency: {medication.frequency}</span>
+                                    <span>Frequency: {medication.Frequency}</span>
                                   </div>
                                   <div className="text-sm text-gray-500 mt-1">
                                     <span>Instructions: {medication.instructions}</span>
@@ -573,19 +610,18 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
                                   <div className="flex items-center gap-2 mt-2">
                                     <Avatar className="h-5 w-5">
                                       <AvatarImage
-                                        src={medication.doctor.avatar || "/placeholder.svg"}
-                                        alt={medication.doctor.name}
+                                        src={"/placeholder.svg"}
+                                        alt={medication.doctorID}
                                       />
                                       <AvatarFallback>
-                                        {medication.doctor.name
+                                        {medication.doctorID
                                           .split(" ")
                                           .map((n) => n[0])
                                           .join("")}
                                       </AvatarFallback>
                                     </Avatar>
                                     <span className="text-xs text-gray-500">
-                                      Prescribed by {medication.doctor.name} on{" "}
-                                      {new Date(medication.date).toLocaleDateString()}
+                                      Prescribed by {medication.doctorID}
                                     </span>
                                   </div>
                                 </div>
@@ -735,7 +771,7 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
               </div>
 
               <div className="space-y-3">
-                {Object.entries(prescriptionsBySpecialty)
+                {Object.entries(groupBySpecialty(prescriptions))
                   .filter(([specialty]) => selectedSpecialty === null || specialty === selectedSpecialty)
                   .map(([specialty, medications]) => (
                     <div key={specialty} className="mb-6">
@@ -748,29 +784,28 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
                           <Card key={medication.id}>
                             <CardHeader className="pb-2">
                               <div className="flex items-center justify-between">
-                                <CardTitle>{medication.medication}</CardTitle>
+                                <CardTitle>{medication.MedicationName}</CardTitle>
                                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                                   {medication.status}
                                 </Badge>
                               </div>
                               <CardDescription>
-                                Prescribed by {medication.doctor.name} on{" "}
-                                {new Date(medication.date).toLocaleDateString()}
+                                Prescribed by {medication.doctorID} 
                               </CardDescription>
                             </CardHeader>
                             <CardContent>
                               <div className="grid grid-cols-3 gap-4">
                                 <div>
                                   <h4 className="text-sm font-medium text-gray-500">Dosage</h4>
-                                  <p>{medication.dosage}</p>
+                                  <p>{medication.Dosage}</p>
                                 </div>
                                 <div>
                                   <h4 className="text-sm font-medium text-gray-500">Frequency</h4>
-                                  <p>{medication.frequency}</p>
+                                  <p>{medication.Frequency}</p>
                                 </div>
                                 <div>
                                   <h4 className="text-sm font-medium text-gray-500">Duration</h4>
-                                  <p>{medication.duration}</p>
+                                  <p>{medication.Duration}</p>
                                 </div>
                               </div>
                               <div className="mt-4">
@@ -782,17 +817,17 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-6 w-6">
                                   <AvatarImage
-                                    src={medication.doctor.avatar || "/placeholder.svg"}
-                                    alt={medication.doctor.name}
+                                    src={ "/placeholder.svg"}
+                                    alt={medication.doctorID}
                                   />
                                   <AvatarFallback>
-                                    {medication.doctor.name
+                                    {medication.doctorID
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join("")}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-sm">{medication.doctor.specialty}</span>
+                                <span className="text-sm">{medication.specialty}</span>
                               </div>
                               <div className="flex gap-2">
                                 <Button variant="outline" size="sm">
@@ -1208,11 +1243,11 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="medication-name">Medication Name</Label>
-              <Input id="medication-name" placeholder="Enter medication name" />
+              <Input id="medication-name" placeholder="Enter medication name" value={PrescriptionData.MedicationName} onChange={(e)=>handlePrescriptionChange("MedicationName",e.target.value)}/>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="medication-specialty">Specialty</Label>
-              <Select>
+              <Select onValueChange={(value) => handlePrescriptionChange("specialty", value)}>
                 <SelectTrigger id="medication-specialty">
                   <SelectValue placeholder="Select your specialty" />
                 </SelectTrigger>
@@ -1231,21 +1266,21 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="dosage">Dosage</Label>
-                <Input id="dosage" placeholder="e.g., 10mg" />
+                <Input id="dosage" placeholder="e.g., 10mg" value={PrescriptionData.Dosage} onChange={(e)=>handlePrescriptionChange("Dosage",e.target.value)}/>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="frequency">Frequency</Label>
-                <Input id="frequency" placeholder="e.g., Twice daily" />
+                <Input id="frequency" placeholder="e.g., Twice daily" value={PrescriptionData.Frequency} onChange={(e)=>handlePrescriptionChange("Frequency",e.target.value)}/>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="duration">Duration</Label>
-                <Input id="duration" placeholder="e.g., 30 days, Ongoing" />
+                <Input id="duration" placeholder="e.g., 30 days, Ongoing" value={PrescriptionData.Duration} onChange={(e)=>handlePrescriptionChange("Duration",e.target.value)}/>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" placeholder="e.g., 60 tablets" />
+                <Input id="quantity" placeholder="e.g., 60 tablets" value={PrescriptionData.quantity} onChange={(e)=>handlePrescriptionChange("quantity",e.target.value)}/>
               </div>
             </div>
             <div className="grid gap-2">
@@ -1254,18 +1289,19 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
                 id="instructions"
                 placeholder="Enter detailed instructions for taking this medication..."
                 className="min-h-20"
+                value={PrescriptionData.instructions} onChange={(e)=>handlePrescriptionChange("instructions",e.target.value)}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Additional Notes</Label>
-              <Textarea id="notes" placeholder="Enter any additional notes or warnings..." className="min-h-20" />
+              <Textarea id="notes" placeholder="Enter any additional notes or warnings..." className="min-h-20" value={PrescriptionData.AdditionalNotes} onChange={(e)=>handlePrescriptionChange("AdditionalNotes",e.target.value)}/>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddPrescriptionDialogOpen(false)}>
               Cancel
             </Button>
-            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => setIsAddPrescriptionDialogOpen(false)}>
+            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={handleAddPrescription}>
               Add Prescription
             </Button>
           </DialogFooter>

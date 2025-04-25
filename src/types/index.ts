@@ -64,7 +64,7 @@ export interface BasicInfo {
 export type RecordEntry=ClinicalNote | Prescription | Document;
 export interface Data {
     type: 'ClinicalNote' | 'Prescription' | 'Document';
-    speciality: string;
+    specialty: string;
     doctorID: string;
 }
 
@@ -78,6 +78,7 @@ export interface ClinicalNote extends Data {
 
 export interface Prescription extends Data {
     type: 'Prescription';
+    id: string;
     MedicationName: string;
     Dosage: string;
     Frequency: string;
@@ -85,6 +86,8 @@ export interface Prescription extends Data {
     quantity: string;
     instructions?: string; 
     AdditionalNotes?: string; 
+    status: string;
+    
 }
 
 export interface Document extends Data {

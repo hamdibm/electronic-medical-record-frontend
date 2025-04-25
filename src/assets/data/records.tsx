@@ -189,7 +189,7 @@ export async function findRecordsForSpecificDoctor(doctorId: string): Promise<Re
               return {
                 ...entry,
                 type: "ClinicalNote",
-                speciality: entry.speciality,
+                specialty: entry.specialty,
                 doctorID: entry.doctorID,
                 title: entry.title,
                 NoteType: entry.NoteType,
@@ -200,7 +200,7 @@ export async function findRecordsForSpecificDoctor(doctorId: string): Promise<Re
               return {
                 ...entry,
                 type: "Prescription",
-                speciality: entry.speciality,
+                specialty: entry.specialty,
                 doctorID: entry.doctorID,
                 MedicationName: entry.MedicationName,
                 Dosage: entry.Dosage,
@@ -214,7 +214,7 @@ export async function findRecordsForSpecificDoctor(doctorId: string): Promise<Re
               return {
                 ...entry,
                 type: "Document",
-                speciality: entry.speciality,
+                specialty: entry.specialty,
                 doctorID: entry.doctorID,
                 documentUrls: entry.documentUrls,
                 documentType: entry.documentType,
@@ -283,7 +283,7 @@ export async function findRecordByID(
                 return {
                   ...entry,
                   type: "ClinicalNote",
-                  speciality: entry.speciality || "",
+                  specialty: entry.specialty || "",
                   doctorID: entry.doctorID || "",
                   title: entry.title || "",
                   NoteType: entry.NoteType || "",
@@ -294,7 +294,7 @@ export async function findRecordByID(
                 return {
                   ...entry,
                   type: "Prescription",
-                  speciality: entry.speciality || "",
+                  specialty: entry.specialty || "",
                   doctorID: entry.doctorID || "",
                   MedicationName: entry.MedicationName || "",
                   Dosage: entry.Dosage || "",
@@ -308,7 +308,7 @@ export async function findRecordByID(
                 return {
                   ...entry,
                   type: "Document",
-                  speciality: entry.speciality || "",
+                  specialty: entry.specialty || "",
                   doctorID: entry.doctorID || "",
                   documentUrls: entry.documentUrls || [],
                   documentType: entry.documentType || "",
