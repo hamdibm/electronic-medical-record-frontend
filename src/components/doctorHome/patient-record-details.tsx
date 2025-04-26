@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -20,13 +20,20 @@ import {
   Brain,
   TreesIcon as Lungs,
   Activity,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -34,16 +41,26 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { findRecordsForSpecificDoctor, updateRecord } from "../../assets/data/records"
-import { NewCaseDialog } from "./new-case-dialog"
-import { getDecodedToken } from "@/lib/jwtUtils"
-import { getPrescriptions } from "@/assets/data/prescriptions"
-import { Prescription } from "@/types"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  findRecordsForSpecificDoctor,
+  updateRecord,
+} from "../../assets/data/records";
+import { NewCaseDialog } from "./new-case-dialog";
+import { getDecodedToken } from "@/lib/jwtUtils";
+import { getPrescriptions } from "@/assets/data/prescriptions";
+import { ClinicalNote, Prescription } from "@/types";
+import { getNotes } from "@/assets/data/clinicalNotes";
 
 const token = getDecodedToken();
 const doctorId = token?.userId;
@@ -52,97 +69,65 @@ if (!doctorId) {
   console.error("No doctor ID found in token");
 }
 
-  const records = await findRecordsForSpecificDoctor(doctorId as string).then((res) => {
+const records = await findRecordsForSpecificDoctor(doctorId as string)
+  .then((res) => {
     console.log("Fetched records for specific doctor:", res);
     return res;
-  }
-  ).catch((err) => {
+  })
+  .catch((err) => {
     console.error("Error fetching records:", err);
     return [];
-  }
-  );
-  
-
-
+  });
 
 interface PatientRecordDetailProps {
-  patientId: string
-  onBack: () => void
-  onCaseSelect?: (caseId: string) => void
+  patientId: string;
+  onBack: () => void;
+  onCaseSelect?: (caseId: string) => void;
 }
-// interface IDoctor {
-//   id: string
-//   name: string
-//   specialty: string
-//   avatar: string
-//   isOnline?: boolean
-// }
 
-// let doctors:  IDoctor[]= [];
-// try {
-//   doctors = await getDoctors();
-//   console.log("Fetched doctors:", doctors);
-// } catch (err) {
-//   console.error("Error fetching doctors:", err);
-// }
-
-
-// const prescriptions = unstructuredPrescriptions.map((p,index) => ({
-//   ...p,
-//   specialty: p.speciality ,
-//   id: index+1,
-//   status: "Active",
-// }));
-
-
-
-// Sample clinical notes organized by specialty
-// In the clinicalNotes array definition
-const clinicalNotes = [
-  {
-    id: "1",
-    title: "Annual Checkup",
-    content:
-      "Patient presents for annual checkup. Blood pressure is 130/85, which is slightly elevated from previous visit. Discussed lifestyle modifications including reduced sodium intake and increased physical activity. Patient reports compliance with current medications. ECG shows normal sinus rhythm. Recommended follow-up in 3 months to reassess blood pressure.",
-    date: "2023-04-10",
-    specialty: "Cardiology",
-    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
-    tags: ["Checkup", "Hypertension"],
-  },
-  {
-    id: "2",
-    title: "Medication Review",
-    content:
-      "Conducted comprehensive medication review. Patient reports good tolerance of current regimen. Metformin dosage adjusted from 500mg to 750mg twice daily due to persistent elevated fasting glucose levels. Discussed potential side effects and monitoring requirements. Patient demonstrates good understanding of medication purposes and administration.",
-    date: "2023-02-15",
-    specialty: "Endocrinology",
-    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
-    tags: ["Medication", "Diabetes"],
-  },
-  // Continue with the same pattern for the remaining clinical notes
-  {
-    id: "3",
-    title: "Respiratory Assessment",
-    content:
-      "Patient reports occasional shortness of breath during moderate exertion. Lung examination reveals clear breath sounds bilaterally. No wheezing or crackles. Oxygen saturation 97% at rest. Recommended pulmonary function testing to establish baseline. Discussed importance of avoiding respiratory irritants.",
-    date: "2023-03-05",
-    specialty: "Pulmonology",
-    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
-    tags: ["Respiratory", "Assessment"],
-  },
-  {
-    id: "4",
-    title: "Neurological Consultation",
-    content:
-      "Patient reports intermittent headaches, primarily frontal, lasting 2-3 hours. No aura or associated symptoms. Neurological examination normal. No focal deficits. Recommended headache diary and over-the-counter analgesics as needed. Will reassess in 6 weeks.",
-    date: "2023-01-20",
-    specialty: "Neurology",
-    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
-    tags: ["Headache", "Consultation"],
-  },
-]
-
-
+// const clinicalNotes = [
+//   {
+//     id: "1",
+//     title: "Annual Checkup",
+//     content:
+//       "Patient presents for annual checkup. Blood pressure is 130/85, which is slightly elevated from previous visit. Discussed lifestyle modifications including reduced sodium intake and increased physical activity. Patient reports compliance with current medications. ECG shows normal sinus rhythm. Recommended follow-up in 3 months to reassess blood pressure.",
+//     date: "2023-04-10",
+//     specialty: "Cardiology",
+//     doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
+//     tags: ["Checkup", "Hypertension"],
+//   },
+//   {
+//     id: "2",
+//     title: "Medication Review",
+//     content:
+//       "Conducted comprehensive medication review. Patient reports good tolerance of current regimen. Metformin dosage adjusted from 500mg to 750mg twice daily due to persistent elevated fasting glucose levels. Discussed potential side effects and monitoring requirements. Patient demonstrates good understanding of medication purposes and administration.",
+//     date: "2023-02-15",
+//     specialty: "Endocrinology",
+//     doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
+//     tags: ["Medication", "Diabetes"],
+//   },
+//   // Continue with the same pattern for the remaining clinical notes
+//   {
+//     id: "3",
+//     title: "Respiratory Assessment",
+//     content:
+//       "Patient reports occasional shortness of breath during moderate exertion. Lung examination reveals clear breath sounds bilaterally. No wheezing or crackles. Oxygen saturation 97% at rest. Recommended pulmonary function testing to establish baseline. Discussed importance of avoiding respiratory irritants.",
+//     date: "2023-03-05",
+//     specialty: "Pulmonology",
+//     doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
+//     tags: ["Respiratory", "Assessment"],
+//   },
+//   {
+//     id: "4",
+//     title: "Neurological Consultation",
+//     content:
+//       "Patient reports intermittent headaches, primarily frontal, lasting 2-3 hours. No aura or associated symptoms. Neurological examination normal. No focal deficits. Recommended headache diary and over-the-counter analgesics as needed. Will reassess in 6 weeks.",
+//     date: "2023-01-20",
+//     specialty: "Neurology",
+//     doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
+//     tags: ["Headache", "Consultation"],
+//   },
+// ]
 
 // Sample medical files organized by specialty
 const medicalFiles = [
@@ -153,7 +138,11 @@ const medicalFiles = [
     fileSize: "2.4 MB",
     date: "2023-04-10",
     specialty: "Cardiology",
-    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Dr. Sarah Johnson
+    doctor: {
+      name: "Unknown Doctor",
+      specialty: "Unknown",
+      avatar: "/placeholder.svg",
+    }, // Dr. Sarah Johnson
     tags: ["ECG", "Cardiology"],
   },
   {
@@ -163,7 +152,11 @@ const medicalFiles = [
     fileSize: "1.8 MB",
     date: "2023-04-08",
     specialty: "Internal Medicine",
-    doctor: { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Dr. Emily Rodriguez
+    doctor: {
+      name: "Unknown Doctor",
+      specialty: "Unknown",
+      avatar: "/placeholder.svg",
+    }, // Dr. Emily Rodriguez
     tags: ["Lab Results", "Blood Work"],
   },
   {
@@ -173,7 +166,11 @@ const medicalFiles = [
     fileSize: "3.2 MB",
     date: "2023-03-05",
     specialty: "Pulmonology",
-    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Dr. Sarah Chen
+    doctor: {
+      name: "Unknown Doctor",
+      specialty: "Unknown",
+      avatar: "/placeholder.svg",
+    }, // Dr. Sarah Chen
     tags: ["X-Ray", "Imaging", "Chest"],
   },
   {
@@ -183,61 +180,68 @@ const medicalFiles = [
     fileSize: "15.6 MB",
     date: "2023-01-20",
     specialty: "Neurology",
-    doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Dr. David Kim
+    doctor: {
+      name: "Unknown Doctor",
+      specialty: "Unknown",
+      avatar: "/placeholder.svg",
+    }, // Dr. David Kim
     tags: ["MRI", "Imaging", "Neurology"],
   },
-]
+];
 
 // Helper function to group items by specialty
-function groupBySpecialty<T extends { specialty: string }>(items: T[]): Record<string,T[]> {
-  return items.reduce(
-    (acc, item) => {
-      const { specialty } = item
-      if (!acc[specialty]) {
-        acc[specialty] = []
-      }
-      acc[specialty].push(item)
-      return acc
-    },
-    {} as Record<string, T[]>,
-  )
+function groupBySpecialty<T extends { specialty: string }>(
+  items: T[]
+): Record<string, T[]> {
+  return items.reduce((acc, item) => {
+    const { specialty } = item;
+    if (!acc[specialty]) {
+      acc[specialty] = [];
+    }
+    acc[specialty].push(item);
+    return acc;
+  }, {} as Record<string, T[]>);
 }
 
 // Get specialty icon
 function getSpecialtyIcon(specialty: string) {
   switch (specialty) {
     case "Cardiology":
-      return <Heart className="h-4 w-4 text-red-500" />
+      return <Heart className="h-4 w-4 text-red-500" />;
     case "Neurology":
-      return <Brain className="h-4 w-4 text-purple-500" />
+      return <Brain className="h-4 w-4 text-purple-500" />;
     case "Pulmonology":
-      return <Lungs className="h-4 w-4 text-blue-500" />
+      return <Lungs className="h-4 w-4 text-blue-500" />;
     case "Endocrinology":
-      return <Activity className="h-4 w-4 text-green-500" />
+      return <Activity className="h-4 w-4 text-green-500" />;
     case "Internal Medicine":
-      return <Stethoscope className="h-4 w-4 text-indigo-500" />
+      return <Stethoscope className="h-4 w-4 text-indigo-500" />;
     case "Radiology":
-      return <FileText className="h-4 w-4 text-cyan-500" />
+      return <FileText className="h-4 w-4 text-cyan-500" />;
     case "Surgery":
-      return <Stethoscope className="h-4 w-4 text-amber-500" />
+      return <Stethoscope className="h-4 w-4 text-amber-500" />;
     default:
-      return <Stethoscope className="h-4 w-4 text-gray-500" />
+      return <Stethoscope className="h-4 w-4 text-gray-500" />;
   }
 }
 
+export function PatientRecordDetail({
+  patientId,
+  onBack,
+  onCaseSelect,
+}: PatientRecordDetailProps) {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isAddNoteDialogOpen, setIsAddNoteDialogOpen] = useState(false);
+  const [isAddPrescriptionDialogOpen, setIsAddPrescriptionDialogOpen] =
+    useState(false);
+  const [isAddFileDialogOpen, setIsAddFileDialogOpen] = useState(false);
+  const [isNewCaseDialogOpen, setIsNewCaseDialogOpen] = useState(false);
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(
+    null
+  );
 
-
-export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: PatientRecordDetailProps) {
-  const [activeTab, setActiveTab] = useState("overview")
-  const [isAddNoteDialogOpen, setIsAddNoteDialogOpen] = useState(false)
-  const [isAddPrescriptionDialogOpen, setIsAddPrescriptionDialogOpen] = useState(false)
-  const [isAddFileDialogOpen, setIsAddFileDialogOpen] = useState(false)
-  const [isNewCaseDialogOpen, setIsNewCaseDialogOpen] = useState(false)
-  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null)
-  
-  
   const [PrescriptionData, setPrescriptionData] = useState<Prescription>({
-    id: Date.now().toString(), // Generate a unique ID
+    id: Math.random().toString(36), // Generate a unique ID
     type: "Prescription",
     specialty: "",
     status: "Active", // Default to Active
@@ -248,110 +252,225 @@ export function PatientRecordDetail({ patientId, onBack, onCaseSelect }: Patient
     quantity: "",
     doctorID: doctorId || "", // Use current doctor's ID
     instructions: "",
-    AdditionalNotes: ""
+    AdditionalNotes: "",
   });
-  const handlePrescriptionChange = (field :string, value:string) => {
+  const handlePrescriptionChange = (field: string, value: string) => {
     setPrescriptionData({
       ...PrescriptionData,
-      [field]: value
+      [field]: value,
     });
   };
 
-const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-useEffect(() => {
-  const fetchPrescriptions = async () => {
-    if (patientId) {
-      const fetchedPrescriptions = await getPrescriptions(doctorId as string, patientId);
-        
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  useEffect(() => {
+    const fetchPrescriptions = async () => {
+      if (patientId) {
+        const fetchedPrescriptions = await getPrescriptions(
+          doctorId as string,
+          patientId
+        );
+
         // Normalize prescription data to ensure all fields are present
-        const normalizedPrescriptions = fetchedPrescriptions.map(prescription => ({
-          id: prescription.id || Date.now().toString(),
-          type: prescription.type || "Prescription",
-          specialty: prescription.specialty || "",
-          status: prescription.status || "Active",
-          MedicationName: prescription.MedicationName || "",
-          Dosage: prescription.Dosage || "",
-          Frequency: prescription.Frequency || "",
-          Duration: prescription.Duration || "",
-          quantity: prescription.quantity || "",
-          doctorID: prescription.doctorID || doctorId || "",
-          instructions: prescription.instructions || "",
-          AdditionalNotes: prescription.AdditionalNotes || ""
-        }));
-        
+        const normalizedPrescriptions = fetchedPrescriptions.map(
+          (prescription) => ({
+            id: prescription.id || Date.now().toString(),
+            type: prescription.type || "Prescription",
+            specialty: prescription.specialty || "",
+            status: prescription.status || "Active",
+            MedicationName: prescription.MedicationName || "",
+            Dosage: prescription.Dosage || "",
+            Frequency: prescription.Frequency || "",
+            Duration: prescription.Duration || "",
+            quantity: prescription.quantity || "",
+            doctorID: prescription.doctorID || doctorId || "",
+            instructions: prescription.instructions || "",
+            AdditionalNotes: prescription.AdditionalNotes || "",
+          })
+        );
+
         setPrescriptions(normalizedPrescriptions);
+      }
+    };
+    fetchPrescriptions();
+  }, [patientId]);
+  console.log("Fetched prescriptions:", prescriptions);
+
+  const [clinicalNotesData, setClinicalNotesData] = useState<ClinicalNote>({
+    id: Math.random().toString(), // Generate a unique ID
+    type: "ClinicalNote",
+    specialty: "",
+    title: "",
+    NoteContent: "",
+    NoteType: "",
+    doctorID: doctorId || "",
+    tags: [],
+  });
+  const handleClinicalNoteChange = (field: string, value: string) => {
+    if (field === "tags") {
+      // Convert comma-separated string to array
+      setClinicalNotesData({
+        ...clinicalNotesData,
+        tags: value.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
+      });
+    } else {
+      setClinicalNotesData({
+        ...clinicalNotesData,
+        [field]: value,
+      });
     }
   };
-  fetchPrescriptions();
-  
-}, [patientId]);
-console.log("Fetched prescriptions:", prescriptions);
-  
-const handleAddPrescription = async () => {
-  try {
-    // Create a complete prescription object
-    const newPrescription: Prescription = {
-      ...PrescriptionData,
-      id: `${Math.random().toString(36)}`, // Generate a unique ID
-      status: "Active",
-      doctorID: doctorId || "",
-      type: "Prescription"
+  const [clinicalNotes, setClinicalNotes] = useState<ClinicalNote[]>([]);
+  useEffect(() => {
+    const fetchClinicalNotes = async () => {
+      if (patientId) {
+        const fetchedClinicalNotes = await getNotes(
+          doctorId as string,
+          patientId
+        );
+
+        // Normalize clinical notes data to ensure all fields are present
+        const normalizedClinicalNotes = fetchedClinicalNotes.map(
+          (note) => ({
+            id: note.id || Date.now().toString(),
+            type: note.type || "ClinicalNote",
+            specialty: note.specialty || "",
+            title: note.title || "",
+            NoteContent: note.NoteContent || "",
+            NoteType: note.NoteType || "",
+            doctorID: note.doctorID || doctorId || "",
+            tags: Array.isArray(note.tags) ? note.tags : 
+            (typeof note.tags === 'string' ? (note.tags as string).split(',').map(t => t.trim()) : []),
+          })
+        );
+
+        setClinicalNotes(normalizedClinicalNotes);
+      }
     };
-    
-    // Add the new prescription to the UI state immediately
-    setPrescriptions(prev => [...prev, newPrescription]);
-    
-    // Prepare the prescription data for blockchain
-    const typeConvertedPrescription = JSON.stringify({
-      ...newPrescription
-    });
-    
-    // Update the record in the blockchain
-    await updateRecord(
-      patientId,
-      doctorId as string,
-      newPrescription.specialty,
-      "", // phoneNumber (not updating)
-      "", // address (not updating)
-      typeConvertedPrescription, // prescriptions
-      "null", // notes (not updating)
-      "null", // document (not updating)
-      "null", // updated basicInfo
-      "null" // collab (not updating)
-    );
-    
-    // Reset the form
-    setPrescriptionData({
-      id: "",
-      specialty: "",
-      status: "Active",
-      type: "Prescription",
-      MedicationName: "",
-      Dosage: "",
-      Frequency: "",
-      Duration: "",
-      quantity: "",
-      doctorID: doctorId || "",
-      instructions: "",
-      AdditionalNotes: ""
-    });
-    
-    // Close the dialog
-    setIsAddPrescriptionDialogOpen(false);
-    
-    // Optional: Show success notification
-    console.log("Prescription added successfully!");
-  } catch (error) {
-    console.error("Error adding prescription:", error);
-    // Optional: Show error notification
+    fetchClinicalNotes();
+  }, [patientId]);
+  console.log("Fetched clinical notes:", clinicalNotes);
+  const handleAddClinicalNotes = async () => {
+    try {
+      // Create a complete clinical note object
+      const newClinicalNote: ClinicalNote = {
+        ...clinicalNotesData,
+        id: `${Math.random().toString(36)}`, // Generate a unique ID
+        doctorID: doctorId || "",
+        type: "ClinicalNote",
+      };
+
+      // Add the new clinical note to the UI state immediately
+      setClinicalNotes((prev) => [...prev, newClinicalNote]);
+
+      // Prepare the clinical note data for blockchain
+      const typeConvertedClinicalNote = JSON.stringify({
+        ...newClinicalNote,
+      });
+
+      // Update the record in the blockchain
+      await updateRecord(
+        patientId,
+        doctorId as string,
+        newClinicalNote.specialty,
+        "", // phoneNumber (not updating)
+        "", // address (not updating)
+        "null", // prescriptions (not updating)
+        typeConvertedClinicalNote, // notes
+        "null", // document (not updating)
+        "null", // updated basicInfo
+        "null" // collab (not updating)
+      );
+
+      // Reset the form
+      setClinicalNotesData({
+        id: "",
+        specialty: "",
+        title: "",
+        NoteContent: "",
+        NoteType: "",
+        type: "ClinicalNote",
+        doctorID: doctorId || "",
+        tags: [],
+      });
+
+      // Close the dialog
+      setIsAddNoteDialogOpen(false);
+
+      // Optional: Show success notification
+      console.log("Clinical note added successfully!");
+    } catch (error) {
+      console.error("Error adding clinical note:", error);
+      // Optional: Show error notification
+    }
   }
-};
+
+  const handleAddPrescription = async () => {
+    try {
+      // Create a complete prescription object
+      const newPrescription: Prescription = {
+        ...PrescriptionData,
+        id: `${Math.random().toString(36)}`, // Generate a unique ID
+        status: "Active",
+        doctorID: doctorId || "",
+        type: "Prescription",
+      };
+
+      // Add the new prescription to the UI state immediately
+      setPrescriptions((prev) => [...prev, newPrescription]);
+
+      // Prepare the prescription data for blockchain
+      const typeConvertedPrescription = JSON.stringify({
+        ...newPrescription,
+      });
+
+      // Update the record in the blockchain
+      await updateRecord(
+        patientId,
+        doctorId as string,
+        newPrescription.specialty,
+        "", // phoneNumber (not updating)
+        "", // address (not updating)
+        typeConvertedPrescription, // prescriptions
+        "null", // notes (not updating)
+        "null", // document (not updating)
+        "null", // updated basicInfo
+        "null" // collab (not updating)
+      );
+
+      // Reset the form
+      setPrescriptionData({
+        id: "",
+        specialty: "",
+        status: "Active",
+        type: "Prescription",
+        MedicationName: "",
+        Dosage: "",
+        Frequency: "",
+        Duration: "",
+        quantity: "",
+        doctorID: doctorId || "",
+        instructions: "",
+        AdditionalNotes: "",
+      });
+
+      // Close the dialog
+      setIsAddPrescriptionDialogOpen(false);
+
+      // Optional: Show success notification
+      console.log("Prescription added successfully!");
+    } catch (error) {
+      console.error("Error adding prescription:", error);
+      // Optional: Show error notification
+    }
+  };
+  //clinical notes part
   // Find the patient by ID
-  const record = records?.find((p) => p.id === patientId)
+  const record = records?.find((p) => p.id === patientId);
+
   // Group notes, prescriptions, and files by specialty
-  const notesBySpecialty = groupBySpecialty(clinicalNotes)
-  const prescriptionsBySpecialty = groupBySpecialty(prescriptions)
-  const filesBySpecialty = groupBySpecialty(medicalFiles)
+  const notesBySpecialty = groupBySpecialty(clinicalNotes);
+  const prescriptionsBySpecialty = groupBySpecialty(prescriptions);
+  const filesBySpecialty = groupBySpecialty(medicalFiles);
 
   // Get unique specialties
   const specialties = Array.from(
@@ -359,17 +478,19 @@ const handleAddPrescription = async () => {
       ...Object.keys(notesBySpecialty),
       ...Object.keys(prescriptionsBySpecialty),
       ...Object.keys(filesBySpecialty),
-    ]),
-  ).sort()
+    ])
+  ).sort();
 
   if (!record) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <h2 className="text-xl font-semibold mb-2">Patient Not Found</h2>
-        <p className="text-gray-500 mb-4">The patient record you're looking for doesn't exist.</p>
+        <p className="text-gray-500 mb-4">
+          The patient record you're looking for doesn't exist.
+        </p>
         <Button onClick={onBack}>Back to Patient Records</Button>
       </div>
-    )
+    );
   }
 
   return (
@@ -386,7 +507,7 @@ const handleAddPrescription = async () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={ "/placeholder.svg"} alt={record.patientName} />
+              <AvatarImage src={"/placeholder.svg"} alt={record.patientName} />
               <AvatarFallback>
                 {record.patientName
                   .split(" ")
@@ -403,12 +524,17 @@ const handleAddPrescription = async () => {
                   {record.age} years, {record.gender}
                 </span>
                 <span>•</span>
-                <span>DOB: {new Date(record.dateOfBirth).toLocaleDateString()}</span>
+                <span>
+                  DOB: {new Date(record.dateOfBirth).toLocaleDateString()}
+                </span>
               </div>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button className="bg-indigo-600 hover:bg-indigo-700 gap-1" onClick={() => setIsNewCaseDialogOpen(true)}>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700 gap-1"
+              onClick={() => setIsNewCaseDialogOpen(true)}
+            >
               <Plus className="h-4 w-4" />
               New Collaboration Case
             </Button>
@@ -417,7 +543,12 @@ const handleAddPrescription = async () => {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+        <Tabs
+          defaultValue="overview"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="h-full flex flex-col"
+        >
           <div className="border-b px-4">
             <TabsList className="bg-transparent p-0 h-10">
               <TabsTrigger
@@ -508,10 +639,16 @@ const handleAddPrescription = async () => {
                       <h3 className="text-sm font-medium mb-2">Allergies</h3>
                       <div className="flex flex-wrap gap-1">
                         {record.basicInfo?.allergies?.length === 0 ? (
-                          <span className="text-sm text-gray-500">No known allergies</span>
+                          <span className="text-sm text-gray-500">
+                            No known allergies
+                          </span>
                         ) : (
                           record.basicInfo?.allergies?.map((allergy, i) => (
-                            <Badge key={i} variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            <Badge
+                              key={i}
+                              variant="outline"
+                              className="bg-red-50 text-red-700 border-red-200"
+                            >
                               {allergy}
                             </Badge>
                           ))
@@ -520,10 +657,16 @@ const handleAddPrescription = async () => {
                     </div>
 
                     <div className="mt-4">
-                      <h3 className="text-sm font-medium mb-2">Current Conditions</h3>
+                      <h3 className="text-sm font-medium mb-2">
+                        Current Conditions
+                      </h3>
                       <div className="flex flex-wrap gap-1">
                         {record.basicInfo?.conditions?.map((condition, i) => (
-                          <Badge key={i} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge
+                            key={i}
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200"
+                          >
                             {condition}
                           </Badge>
                         ))}
@@ -576,60 +719,79 @@ const handleAddPrescription = async () => {
                 <Card className="md:col-span-3">
                   <CardHeader>
                     <CardTitle>Current Medications by Specialty</CardTitle>
-                    <CardDescription>Medications prescribed by different specialists for this patient</CardDescription>
+                    <CardDescription>
+                      Medications prescribed by different specialists for this
+                      patient
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {Object.entries(prescriptionsBySpecialty).map(([specialty, medications]) => (
-                        <div key={specialty}>
-                          <div className="flex items-center gap-2 mb-3">
-                            {getSpecialtyIcon(specialty)}
-                            <h3 className="text-base font-medium">{specialty}</h3>
-                          </div>
-                          <div className="space-y-3 pl-6">
-                            {medications.map((medication) => (
-                              <div key={medication.id} className="flex items-start gap-3 p-3 border rounded-md">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100">
-                                  <Pill className="h-4 w-4 text-indigo-600" />
+                      {Object.entries(prescriptionsBySpecialty).map(
+                        ([specialty, medications]) => (
+                          <div key={specialty}>
+                            <div className="flex items-center gap-2 mb-3">
+                              {getSpecialtyIcon(specialty)}
+                              <h3 className="text-base font-medium">
+                                {specialty}
+                              </h3>
+                            </div>
+                            <div className="space-y-3 pl-6">
+                              {medications.map((medication) => (
+                                <div
+                                  key={medication.id}
+                                  className="flex items-start gap-3 p-3 border rounded-md"
+                                >
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100">
+                                    <Pill className="h-4 w-4 text-indigo-600" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-medium">
+                                        {medication.MedicationName}
+                                      </h4>
+                                      <Badge
+                                        variant="outline"
+                                        className="bg-green-50 text-green-700 border-green-200"
+                                      >
+                                        {medication.status}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                      <span>Dosage: {medication.Dosage}</span>
+                                      <span>•</span>
+                                      <span>
+                                        Frequency: {medication.Frequency}
+                                      </span>
+                                    </div>
+                                    <div className="text-sm text-gray-500 mt-1">
+                                      <span>
+                                        Instructions: {medication.instructions}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Avatar className="h-5 w-5">
+                                        <AvatarImage
+                                          src={"/placeholder.svg"}
+                                          alt={medication.doctorID}
+                                        />
+                                        <AvatarFallback>
+                                          {medication.doctorID
+                                            .split(" ")
+                                            .map((n) => n[0])
+                                            .join("")}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-xs text-gray-500">
+                                        Prescribed by {medication.doctorID}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="font-medium">{medication.MedicationName}</h4>
-                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                      {medication.status}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                                    <span>Dosage: {medication.Dosage}</span>
-                                    <span>•</span>
-                                    <span>Frequency: {medication.Frequency}</span>
-                                  </div>
-                                  <div className="text-sm text-gray-500 mt-1">
-                                    <span>Instructions: {medication.instructions}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <Avatar className="h-5 w-5">
-                                      <AvatarImage
-                                        src={"/placeholder.svg"}
-                                        alt={medication.doctorID}
-                                      />
-                                      <AvatarFallback>
-                                        {medication.doctorID
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join("")}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-xs text-gray-500">
-                                      Prescribed by {medication.doctorID}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      )}
                       <Button
                         variant="outline"
                         className="w-full gap-1"
@@ -673,15 +835,23 @@ const handleAddPrescription = async () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Medical History</CardTitle>
-                  <CardDescription>Patient's complete medical history and conditions</CardDescription>
+                  <CardDescription>
+                    Patient's complete medical history and conditions
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-sm font-medium mb-2">Chronic Conditions</h3>
+                      <h3 className="text-sm font-medium mb-2">
+                        Chronic Conditions
+                      </h3>
                       <div className="flex flex-wrap gap-1">
                         {record.basicInfo?.conditions?.map((condition, i) => (
-                          <Badge key={i} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge
+                            key={i}
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200"
+                          >
                             {condition}
                           </Badge>
                         ))}
@@ -692,22 +862,33 @@ const handleAddPrescription = async () => {
                       <h3 className="text-sm font-medium mb-2">Allergies</h3>
                       <div className="flex flex-wrap gap-1">
                         {record.basicInfo?.allergies?.length === 0 ? (
-                          <span className="text-sm text-gray-500">No known allergies</span>
+                          <span className="text-sm text-gray-500">
+                            No known allergies
+                          </span>
                         ) : (
                           record.basicInfo?.allergies?.map((allergy, i) => (
-                            <Badge key={i} variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            <Badge
+                              key={i}
+                              variant="outline"
+                              className="bg-red-50 text-red-700 border-red-200"
+                            >
                               {allergy}
                             </Badge>
                           ))
                         )}
                       </div>
                     </div>
-{/* ################################## still not treated */}
+                    {/* ################################## still not treated */}
                     <div>
-                      <h3 className="text-sm font-medium mb-2">Visit History</h3>
+                      <h3 className="text-sm font-medium mb-2">
+                        Visit History
+                      </h3>
                       <div className="space-y-3">
                         {record.basicInfo?.recentVisits?.map((visit, i) => (
-                          <div key={i} className="flex items-start gap-3 p-3 border rounded-md">
+                          <div
+                            key={i}
+                            className="flex items-start gap-3 p-3 border rounded-md"
+                          >
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
                               <Calendar className="h-4 w-4 text-blue-600" />
                             </div>
@@ -718,7 +899,9 @@ const handleAddPrescription = async () => {
                                   {new Date(visit.date).toLocaleDateString()}
                                 </span>
                               </div>
-                              <div className="text-sm text-gray-500 mt-1">{visit.doctor}</div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                {visit.doctor}
+                              </div>
                             </div>
                             <Button variant="ghost" size="sm" className="gap-1">
                               <ChevronRight className="h-4 w-4" />
@@ -749,7 +932,11 @@ const handleAddPrescription = async () => {
                 <Button
                   variant={selectedSpecialty === null ? "default" : "outline"}
                   size="sm"
-                  className={`mr-2 ${selectedSpecialty === null ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                  className={`mr-2 ${
+                    selectedSpecialty === null
+                      ? "bg-indigo-600 hover:bg-indigo-700"
+                      : ""
+                  }`}
                   onClick={() => setSelectedSpecialty(null)}
                 >
                   All Specialties
@@ -757,9 +944,15 @@ const handleAddPrescription = async () => {
                 {specialties.map((specialty) => (
                   <Button
                     key={specialty}
-                    variant={selectedSpecialty === specialty ? "default" : "outline"}
+                    variant={
+                      selectedSpecialty === specialty ? "default" : "outline"
+                    }
                     size="sm"
-                    className={`mr-2 ${selectedSpecialty === specialty ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                    className={`mr-2 ${
+                      selectedSpecialty === specialty
+                        ? "bg-indigo-600 hover:bg-indigo-700"
+                        : ""
+                    }`}
                     onClick={() => setSelectedSpecialty(specialty)}
                   >
                     <span className="flex items-center gap-1">
@@ -772,7 +965,11 @@ const handleAddPrescription = async () => {
 
               <div className="space-y-3">
                 {Object.entries(groupBySpecialty(prescriptions))
-                  .filter(([specialty]) => selectedSpecialty === null || specialty === selectedSpecialty)
+                  .filter(
+                    ([specialty]) =>
+                      selectedSpecialty === null ||
+                      specialty === selectedSpecialty
+                  )
                   .map(([specialty, medications]) => (
                     <div key={specialty} className="mb-6">
                       <div className="flex items-center gap-2 mb-3">
@@ -784,40 +981,55 @@ const handleAddPrescription = async () => {
                           <Card key={medication.id}>
                             <CardHeader className="pb-2">
                               <div className="flex items-center justify-between">
-                                <CardTitle>{medication.MedicationName}</CardTitle>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <CardTitle>
+                                  {medication.MedicationName}
+                                </CardTitle>
+                                <Badge
+                                  variant="outline"
+                                  className="bg-green-50 text-green-700 border-green-200"
+                                >
                                   {medication.status}
                                 </Badge>
                               </div>
                               <CardDescription>
-                                Prescribed by {medication.doctorID} 
+                                Prescribed by {medication.doctorID}
                               </CardDescription>
                             </CardHeader>
                             <CardContent>
                               <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                  <h4 className="text-sm font-medium text-gray-500">Dosage</h4>
+                                  <h4 className="text-sm font-medium text-gray-500">
+                                    Dosage
+                                  </h4>
                                   <p>{medication.Dosage}</p>
                                 </div>
                                 <div>
-                                  <h4 className="text-sm font-medium text-gray-500">Frequency</h4>
+                                  <h4 className="text-sm font-medium text-gray-500">
+                                    Frequency
+                                  </h4>
                                   <p>{medication.Frequency}</p>
                                 </div>
                                 <div>
-                                  <h4 className="text-sm font-medium text-gray-500">Duration</h4>
+                                  <h4 className="text-sm font-medium text-gray-500">
+                                    Duration
+                                  </h4>
                                   <p>{medication.Duration}</p>
                                 </div>
                               </div>
                               <div className="mt-4">
-                                <h4 className="text-sm font-medium text-gray-500">Instructions</h4>
-                                <p className="text-sm">{medication.instructions}</p>
+                                <h4 className="text-sm font-medium text-gray-500">
+                                  Instructions
+                                </h4>
+                                <p className="text-sm">
+                                  {medication.instructions}
+                                </p>
                               </div>
                             </CardContent>
                             <CardFooter className="border-t bg-gray-50 flex justify-between">
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-6 w-6">
                                   <AvatarImage
-                                    src={ "/placeholder.svg"}
+                                    src={"/placeholder.svg"}
                                     alt={medication.doctorID}
                                   />
                                   <AvatarFallback>
@@ -827,13 +1039,19 @@ const handleAddPrescription = async () => {
                                       .join("")}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="text-sm">{medication.specialty}</span>
+                                <span className="text-sm">
+                                  {medication.specialty}
+                                </span>
                               </div>
                               <div className="flex gap-2">
                                 <Button variant="outline" size="sm">
                                   Edit
                                 </Button>
-                                <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700"
+                                >
                                   Discontinue
                                 </Button>
                               </div>
@@ -853,7 +1071,7 @@ const handleAddPrescription = async () => {
                   className="bg-indigo-600 hover:bg-indigo-700 gap-1"
                   onClick={() => setIsAddNoteDialogOpen(true)}
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4" />                                         {/* Add Note */}
                   Add Note
                 </Button>
               </div>
@@ -862,7 +1080,11 @@ const handleAddPrescription = async () => {
                 <Button
                   variant={selectedSpecialty === null ? "default" : "outline"}
                   size="sm"
-                  className={`mr-2 ${selectedSpecialty === null ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                  className={`mr-2 ${
+                    selectedSpecialty === null
+                      ? "bg-indigo-600 hover:bg-indigo-700"
+                      : ""
+                  }`}
                   onClick={() => setSelectedSpecialty(null)}
                 >
                   All Specialties
@@ -870,9 +1092,15 @@ const handleAddPrescription = async () => {
                 {specialties.map((specialty) => (
                   <Button
                     key={specialty}
-                    variant={selectedSpecialty === specialty ? "default" : "outline"}
+                    variant={
+                      selectedSpecialty === specialty ? "default" : "outline"
+                    }
                     size="sm"
-                    className={`mr-2 ${selectedSpecialty === specialty ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                    className={`mr-2 ${
+                      selectedSpecialty === specialty
+                        ? "bg-indigo-600 hover:bg-indigo-700"
+                        : ""
+                    }`}
                     onClick={() => setSelectedSpecialty(specialty)}
                   >
                     <span className="flex items-center gap-1">
@@ -885,7 +1113,11 @@ const handleAddPrescription = async () => {
 
               <div className="space-y-6">
                 {Object.entries(notesBySpecialty)
-                  .filter(([specialty]) => selectedSpecialty === null || specialty === selectedSpecialty)
+                  .filter(
+                    ([specialty]) =>
+                      selectedSpecialty === null ||
+                      specialty === selectedSpecialty
+                  )
                   .map(([specialty, notes]) => (
                     <div key={specialty} className="mb-6">
                       <div className="flex items-center gap-2 mb-3">
@@ -899,29 +1131,34 @@ const handleAddPrescription = async () => {
                               <div className="flex items-center justify-between">
                                 <CardTitle>{note.title}</CardTitle>
                                 <span className="text-sm text-gray-500">
-                                  {new Date(note.date).toLocaleDateString()}
+                                  {new Date().toLocaleDateString()}
                                 </span>
                               </div>
                               <CardDescription>
-                                {note.doctor.name} - {note.doctor.specialty}
+                                {note.doctorID} - {note.specialty}
                               </CardDescription>
                             </CardHeader>
                             <CardContent>
-                              <p className="text-sm">{note.content}</p>
+                              <p className="text-sm">{note.NoteContent}</p>
                             </CardContent>
                             <CardFooter className="border-t bg-gray-50 flex justify-between">
                               <div className="flex items-center gap-2">
-                                {note.tags.map((tag, i) => (
-                                  <Badge key={i} variant="outline">
-                                    {tag}
-                                  </Badge>
-                                ))}
+                              {(note.tags && Array.isArray(note.tags)) ? note.tags.map((tag, i) => (
+  <Badge key={i} variant="outline">
+    {tag}
+  </Badge>
+)) : null}
                               </div>
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-6 w-6">
-                                  <AvatarImage src={note.doctor.avatar || "/placeholder.svg"} alt={note.doctor.name} />
+                                  <AvatarImage
+                                    src={
+                                       "/placeholder.svg"
+                                    }
+                                    alt={note.doctorID}
+                                  />
                                   <AvatarFallback>
-                                    {note.doctor.name
+                                    {note.doctorID
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join("")}
@@ -956,7 +1193,11 @@ const handleAddPrescription = async () => {
                 <Button
                   variant={selectedSpecialty === null ? "default" : "outline"}
                   size="sm"
-                  className={`mr-2 ${selectedSpecialty === null ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                  className={`mr-2 ${
+                    selectedSpecialty === null
+                      ? "bg-indigo-600 hover:bg-indigo-700"
+                      : ""
+                  }`}
                   onClick={() => setSelectedSpecialty(null)}
                 >
                   All Specialties
@@ -964,9 +1205,15 @@ const handleAddPrescription = async () => {
                 {specialties.map((specialty) => (
                   <Button
                     key={specialty}
-                    variant={selectedSpecialty === specialty ? "default" : "outline"}
+                    variant={
+                      selectedSpecialty === specialty ? "default" : "outline"
+                    }
                     size="sm"
-                    className={`mr-2 ${selectedSpecialty === specialty ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
+                    className={`mr-2 ${
+                      selectedSpecialty === specialty
+                        ? "bg-indigo-600 hover:bg-indigo-700"
+                        : ""
+                    }`}
                     onClick={() => setSelectedSpecialty(specialty)}
                   >
                     <span className="flex items-center gap-1">
@@ -979,7 +1226,11 @@ const handleAddPrescription = async () => {
 
               <div className="space-y-6">
                 {Object.entries(filesBySpecialty)
-                  .filter(([specialty]) => selectedSpecialty === null || specialty === selectedSpecialty)
+                  .filter(
+                    ([specialty]) =>
+                      selectedSpecialty === null ||
+                      specialty === selectedSpecialty
+                  )
                   .map(([specialty, files]) => (
                     <div key={specialty} className="mb-6">
                       <div className="flex items-center gap-2 mb-3">
@@ -996,7 +1247,9 @@ const handleAddPrescription = async () => {
                                   {new Date(file.date).toLocaleDateString()}
                                 </span>
                               </div>
-                              <CardDescription>Uploaded by {file.doctor.name}</CardDescription>
+                              <CardDescription>
+                                Uploaded by {file.doctor.name}
+                              </CardDescription>
                             </CardHeader>
                             <CardContent>
                               <div className="flex items-center gap-3">
@@ -1005,7 +1258,9 @@ const handleAddPrescription = async () => {
                                 </div>
                                 <div className="flex-1">
                                   <p className="font-medium">{file.filename}</p>
-                                  <p className="text-sm text-gray-500">{file.fileSize}</p>
+                                  <p className="text-sm text-gray-500">
+                                    {file.fileSize}
+                                  </p>
                                 </div>
                               </div>
                             </CardContent>
@@ -1053,14 +1308,19 @@ const handleAddPrescription = async () => {
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <CardTitle>Unusual Cardiac Symptoms</CardTitle>
-                          <Badge className="bg-blue-50 text-blue-700 border-blue-200">Open</Badge>
+                          <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                            Open
+                          </Badge>
                         </div>
-                        <CardDescription>Case #MED-2023-1234 • Created April 18, 2023</CardDescription>
+                        <CardDescription>
+                          Case #MED-2023-1234 • Created April 18, 2023
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm mb-3">
-                          Patient presents with atypical chest pain and irregular ECG patterns. Initial tests show
-                          elevated cardiac enzymes but inconclusive stress test results.
+                          Patient presents with atypical chest pain and
+                          irregular ECG patterns. Initial tests show elevated
+                          cardiac enzymes but inconclusive stress test results.
                         </p>
                         <div className="flex flex-wrap gap-1 mb-3">
                           <Badge variant="outline" className="bg-gray-100">
@@ -1069,26 +1329,38 @@ const handleAddPrescription = async () => {
                           <Badge variant="outline" className="bg-gray-100">
                             #ECG
                           </Badge>
-                          <Badge variant="outline" className="bg-amber-100 text-amber-700">
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-100 text-amber-700"
+                          >
                             #Urgent
                           </Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-500">4 participating doctors</span>
+                          <span className="text-sm text-gray-500">
+                            4 participating doctors
+                          </span>
                         </div>
                       </CardContent>
                       <CardFooter className="border-t bg-gray-50 flex justify-between">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
-                            <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Dr. Sarah Johnson" />
+                            <AvatarImage
+                              src="/placeholder.svg?height=40&width=40"
+                              alt="Dr. Sarah Johnson"
+                            />
                             <AvatarFallback>SJ</AvatarFallback>
                           </Avatar>
-                          <span className="text-sm">Created by Dr. Sarah Johnson</span>
+                          <span className="text-sm">
+                            Created by Dr. Sarah Johnson
+                          </span>
                         </div>
                         <Button
                           className="bg-indigo-600 hover:bg-indigo-700"
-                          onClick={() => onCaseSelect && onCaseSelect("MED-2023-1234")}
+                          onClick={() =>
+                            onCaseSelect && onCaseSelect("MED-2023-1234")
+                          }
                         >
                           View Case
                         </Button>
@@ -1099,14 +1371,19 @@ const handleAddPrescription = async () => {
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
                           <CardTitle>Diabetes Management Review</CardTitle>
-                          <Badge className="bg-gray-100 text-gray-700 border-gray-200">Closed</Badge>
+                          <Badge className="bg-gray-100 text-gray-700 border-gray-200">
+                            Closed
+                          </Badge>
                         </div>
-                        <CardDescription>Case #MED-2023-1238 • Created April 10, 2023</CardDescription>
+                        <CardDescription>
+                          Case #MED-2023-1238 • Created April 10, 2023
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm mb-3">
-                          Quarterly review of diabetes management plan and medication adjustments. Patient shows
-                          improved glucose control with current regimen.
+                          Quarterly review of diabetes management plan and
+                          medication adjustments. Patient shows improved glucose
+                          control with current regimen.
                         </p>
                         <div className="flex flex-wrap gap-1 mb-3">
                           <Badge variant="outline" className="bg-gray-100">
@@ -1121,20 +1398,29 @@ const handleAddPrescription = async () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-500">2 participating doctors</span>
+                          <span className="text-sm text-gray-500">
+                            2 participating doctors
+                          </span>
                         </div>
                       </CardContent>
                       <CardFooter className="border-t bg-gray-50 flex justify-between">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
-                            <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Dr. Sarah Johnson" />
+                            <AvatarImage
+                              src="/placeholder.svg?height=40&width=40"
+                              alt="Dr. Sarah Johnson"
+                            />
                             <AvatarFallback>SJ</AvatarFallback>
                           </Avatar>
-                          <span className="text-sm">Created by Dr. Sarah Johnson</span>
+                          <span className="text-sm">
+                            Created by Dr. Sarah Johnson
+                          </span>
                         </div>
                         <Button
                           className="bg-indigo-600 hover:bg-indigo-700"
-                          onClick={() => onCaseSelect && onCaseSelect("MED-2023-1238")}
+                          onClick={() =>
+                            onCaseSelect && onCaseSelect("MED-2023-1238")
+                          }
                         >
                           View Case
                         </Button>
@@ -1144,9 +1430,12 @@ const handleAddPrescription = async () => {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <MessageSquare className="h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-1">No collaboration cases</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-1">
+                      No collaboration cases
+                    </h3>
                     <p className="text-gray-500 mb-4">
-                      This patient doesn't have any active or past collaboration cases
+                      This patient doesn't have any active or past collaboration
+                      cases
                     </p>
                     <Button
                       onClick={() => setIsNewCaseDialogOpen(true)}
@@ -1169,18 +1458,19 @@ const handleAddPrescription = async () => {
           <DialogHeader>
             <DialogTitle>Add Clinical Note</DialogTitle>
             <DialogDescription>
-              Add a new clinical note to the patient's record. This will be visible to all healthcare providers with
-              access to this patient.
+              Add a new clinical note to the patient's record. This will be
+              visible to all healthcare providers with access to this patient.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="note-title">Title</Label>
-              <Input id="note-title" placeholder="Enter note title" />
+              <Input id="note-title" placeholder="Enter note title" value={clinicalNotesData.title} onChange={(e)=>handleClinicalNoteChange("title",e.target.value)}/>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="note-specialty">Specialty</Label>
-              <Select>
+              <Select onValueChange={(value) =>
+                  handlePrescriptionChange("specialty", value)}>
                 <SelectTrigger id="note-specialty">
                   <SelectValue placeholder="Select your specialty" />
                 </SelectTrigger>
@@ -1189,7 +1479,9 @@ const handleAddPrescription = async () => {
                   <SelectItem value="neurology">Neurology</SelectItem>
                   <SelectItem value="pulmonology">Pulmonology</SelectItem>
                   <SelectItem value="endocrinology">Endocrinology</SelectItem>
-                  <SelectItem value="internal-medicine">Internal Medicine</SelectItem>
+                  <SelectItem value="internal-medicine">
+                    Internal Medicine
+                  </SelectItem>
                   <SelectItem value="radiology">Radiology</SelectItem>
                   <SelectItem value="surgery">Surgery</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
@@ -1198,7 +1490,8 @@ const handleAddPrescription = async () => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="note-type">Note Type</Label>
-              <Select>
+              <Select onValueChange={(value) =>
+                  handlePrescriptionChange("NoteType", value)}>
                 <SelectTrigger id="note-type">
                   <SelectValue placeholder="Select note type" />
                 </SelectTrigger>
@@ -1213,18 +1506,32 @@ const handleAddPrescription = async () => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="note-content">Note Content</Label>
-              <Textarea id="note-content" placeholder="Enter detailed clinical note..." className="min-h-32" />
+              <Textarea value={clinicalNotesData.NoteContent} onChange={(e)=>handleClinicalNoteChange("NoteContent",e.target.value)}
+                id="note-content"
+                placeholder="Enter detailed clinical note..."
+                className="min-h-32"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="note-tags">Tags</Label>
-              <Input id="note-tags" placeholder="Enter tags separated by commas (e.g., checkup, hypertension)" />
+              <Input value={Array.isArray(clinicalNotesData.tags) ? clinicalNotesData.tags.join(', ') : ''}
+  onChange={(e) => handleClinicalNoteChange("tags", e.target.value)}
+                id="note-tags"
+                placeholder="Enter tags separated by commas (e.g., checkup, hypertension)"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddNoteDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddNoteDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => setIsAddNoteDialogOpen(false)}>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => handleAddClinicalNotes()}
+            >
               Save Note
             </Button>
           </DialogFooter>
@@ -1232,22 +1539,37 @@ const handleAddPrescription = async () => {
       </Dialog>
 
       {/* Add Prescription Dialog */}
-      <Dialog open={isAddPrescriptionDialogOpen} onOpenChange={setIsAddPrescriptionDialogOpen}>
+      <Dialog
+        open={isAddPrescriptionDialogOpen}
+        onOpenChange={setIsAddPrescriptionDialogOpen}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Prescription</DialogTitle>
             <DialogDescription>
-              Add a new prescription to the patient's record. Please ensure all information is accurate.
+              Add a new prescription to the patient's record. Please ensure all
+              information is accurate.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="medication-name">Medication Name</Label>
-              <Input id="medication-name" placeholder="Enter medication name" value={PrescriptionData.MedicationName} onChange={(e)=>handlePrescriptionChange("MedicationName",e.target.value)}/>
+              <Input
+                id="medication-name"
+                placeholder="Enter medication name"
+                value={PrescriptionData.MedicationName}
+                onChange={(e) =>
+                  handlePrescriptionChange("MedicationName", e.target.value)
+                }
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="medication-specialty">Specialty</Label>
-              <Select onValueChange={(value) => handlePrescriptionChange("specialty", value)}>
+              <Select
+                onValueChange={(value) =>
+                  handlePrescriptionChange("specialty", value)
+                }
+              >
                 <SelectTrigger id="medication-specialty">
                   <SelectValue placeholder="Select your specialty" />
                 </SelectTrigger>
@@ -1256,7 +1578,9 @@ const handleAddPrescription = async () => {
                   <SelectItem value="neurology">Neurology</SelectItem>
                   <SelectItem value="pulmonology">Pulmonology</SelectItem>
                   <SelectItem value="endocrinology">Endocrinology</SelectItem>
-                  <SelectItem value="internal-medicine">Internal Medicine</SelectItem>
+                  <SelectItem value="internal-medicine">
+                    Internal Medicine
+                  </SelectItem>
                   <SelectItem value="radiology">Radiology</SelectItem>
                   <SelectItem value="surgery">Surgery</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
@@ -1266,21 +1590,49 @@ const handleAddPrescription = async () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="dosage">Dosage</Label>
-                <Input id="dosage" placeholder="e.g., 10mg" value={PrescriptionData.Dosage} onChange={(e)=>handlePrescriptionChange("Dosage",e.target.value)}/>
+                <Input
+                  id="dosage"
+                  placeholder="e.g., 10mg"
+                  value={PrescriptionData.Dosage}
+                  onChange={(e) =>
+                    handlePrescriptionChange("Dosage", e.target.value)
+                  }
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="frequency">Frequency</Label>
-                <Input id="frequency" placeholder="e.g., Twice daily" value={PrescriptionData.Frequency} onChange={(e)=>handlePrescriptionChange("Frequency",e.target.value)}/>
+                <Input
+                  id="frequency"
+                  placeholder="e.g., Twice daily"
+                  value={PrescriptionData.Frequency}
+                  onChange={(e) =>
+                    handlePrescriptionChange("Frequency", e.target.value)
+                  }
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="duration">Duration</Label>
-                <Input id="duration" placeholder="e.g., 30 days, Ongoing" value={PrescriptionData.Duration} onChange={(e)=>handlePrescriptionChange("Duration",e.target.value)}/>
+                <Input
+                  id="duration"
+                  placeholder="e.g., 30 days, Ongoing"
+                  value={PrescriptionData.Duration}
+                  onChange={(e) =>
+                    handlePrescriptionChange("Duration", e.target.value)
+                  }
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="quantity">Quantity</Label>
-                <Input id="quantity" placeholder="e.g., 60 tablets" value={PrescriptionData.quantity} onChange={(e)=>handlePrescriptionChange("quantity",e.target.value)}/>
+                <Input
+                  id="quantity"
+                  placeholder="e.g., 60 tablets"
+                  value={PrescriptionData.quantity}
+                  onChange={(e) =>
+                    handlePrescriptionChange("quantity", e.target.value)
+                  }
+                />
               </div>
             </div>
             <div className="grid gap-2">
@@ -1289,19 +1641,36 @@ const handleAddPrescription = async () => {
                 id="instructions"
                 placeholder="Enter detailed instructions for taking this medication..."
                 className="min-h-20"
-                value={PrescriptionData.instructions} onChange={(e)=>handlePrescriptionChange("instructions",e.target.value)}
+                value={PrescriptionData.instructions}
+                onChange={(e) =>
+                  handlePrescriptionChange("instructions", e.target.value)
+                }
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Additional Notes</Label>
-              <Textarea id="notes" placeholder="Enter any additional notes or warnings..." className="min-h-20" value={PrescriptionData.AdditionalNotes} onChange={(e)=>handlePrescriptionChange("AdditionalNotes",e.target.value)}/>
+              <Textarea
+                id="notes"
+                placeholder="Enter any additional notes or warnings..."
+                className="min-h-20"
+                value={PrescriptionData.AdditionalNotes}
+                onChange={(e) =>
+                  handlePrescriptionChange("AdditionalNotes", e.target.value)
+                }
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddPrescriptionDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddPrescriptionDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={handleAddPrescription}>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={handleAddPrescription}
+            >
               Add Prescription
             </Button>
           </DialogFooter>
@@ -1314,13 +1683,16 @@ const handleAddPrescription = async () => {
           <DialogHeader>
             <DialogTitle>Upload Medical File</DialogTitle>
             <DialogDescription>
-              Upload a medical file to the patient's record. Supported formats: PDF, JPG, PNG, DICOM.
+              Upload a medical file to the patient's record. Supported formats:
+              PDF, JPG, PNG, DICOM.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center">
               <Upload className="h-10 w-10 text-gray-400 mb-2" />
-              <p className="text-sm font-medium mb-1">Drag and drop files here</p>
+              <p className="text-sm font-medium mb-1">
+                Drag and drop files here
+              </p>
               <p className="text-xs text-gray-500 mb-3">or</p>
               <Button variant="outline" size="sm">
                 Browse Files
@@ -1337,7 +1709,9 @@ const handleAddPrescription = async () => {
                   <SelectItem value="neurology">Neurology</SelectItem>
                   <SelectItem value="pulmonology">Pulmonology</SelectItem>
                   <SelectItem value="endocrinology">Endocrinology</SelectItem>
-                  <SelectItem value="internal-medicine">Internal Medicine</SelectItem>
+                  <SelectItem value="internal-medicine">
+                    Internal Medicine
+                  </SelectItem>
                   <SelectItem value="radiology">Radiology</SelectItem>
                   <SelectItem value="surgery">Surgery</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
@@ -1361,18 +1735,31 @@ const handleAddPrescription = async () => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="file-description">Description</Label>
-              <Textarea id="file-description" placeholder="Enter a description of this file..." className="min-h-20" />
+              <Textarea
+                id="file-description"
+                placeholder="Enter a description of this file..."
+                className="min-h-20"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="file-tags">Tags</Label>
-              <Input id="file-tags" placeholder="Enter tags separated by commas (e.g., ECG, cardiology)" />
+              <Input
+                id="file-tags"
+                placeholder="Enter tags separated by commas (e.g., ECG, cardiology)"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddFileDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddFileDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button className="bg-indigo-600 hover:bg-indigo-700" onClick={() => setIsAddFileDialogOpen(false)}>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => setIsAddFileDialogOpen(false)}
+            >
               Upload File
             </Button>
           </DialogFooter>
@@ -1380,7 +1767,11 @@ const handleAddPrescription = async () => {
       </Dialog>
 
       {/* New Case Dialog */}
-      <NewCaseDialog open={isNewCaseDialogOpen} onOpenChange={setIsNewCaseDialogOpen} preselectedPatient={record} />
+      <NewCaseDialog
+        open={isNewCaseDialogOpen}
+        onOpenChange={setIsNewCaseDialogOpen}
+        preselectedPatient={record}
+      />
     </div>
-  )
+  );
 }

@@ -71,6 +71,7 @@ export interface Data {
 export interface ClinicalNote extends Data {
     type: 'ClinicalNote';
     title: string;
+    id: string;
     NoteType: string;
     NoteContent: string; 
     tags: string[];
