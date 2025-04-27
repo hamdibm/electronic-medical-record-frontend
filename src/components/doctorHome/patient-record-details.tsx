@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -59,8 +59,9 @@ import {
 import { NewCaseDialog } from "./new-case-dialog";
 import { getDecodedToken } from "@/lib/jwtUtils";
 import { getPrescriptions } from "@/assets/data/prescriptions";
-import { ClinicalNote, Prescription } from "@/types";
+import { ClinicalNote, Document, Prescription } from "@/types";
 import { getNotes } from "@/assets/data/clinicalNotes";
+import { getFiles } from "@/assets/data/files";
 
 const token = getDecodedToken();
 const doctorId = token?.userId;
@@ -85,109 +86,65 @@ interface PatientRecordDetailProps {
   onCaseSelect?: (caseId: string) => void;
 }
 
-// const clinicalNotes = [
+// Sample medical files organized by specialty
+// const medicalFiles = [
 //   {
 //     id: "1",
-//     title: "Annual Checkup",
-//     content:
-//       "Patient presents for annual checkup. Blood pressure is 130/85, which is slightly elevated from previous visit. Discussed lifestyle modifications including reduced sodium intake and increased physical activity. Patient reports compliance with current medications. ECG shows normal sinus rhythm. Recommended follow-up in 3 months to reassess blood pressure.",
+//     title: "ECG Report",
+//     filename: "ECG_Report_Smith_John_20230410.pdf",
+//     fileSize: "2.4 MB",
 //     date: "2023-04-10",
 //     specialty: "Cardiology",
-//     doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
-//     tags: ["Checkup", "Hypertension"],
+//     doctor: {
+//       name: "Unknown Doctor",
+//       specialty: "Unknown",
+//       avatar: "/placeholder.svg",
+//     }, // Dr. Sarah Johnson
+//     tags: ["ECG", "Cardiology"],
 //   },
 //   {
 //     id: "2",
-//     title: "Medication Review",
-//     content:
-//       "Conducted comprehensive medication review. Patient reports good tolerance of current regimen. Metformin dosage adjusted from 500mg to 750mg twice daily due to persistent elevated fasting glucose levels. Discussed potential side effects and monitoring requirements. Patient demonstrates good understanding of medication purposes and administration.",
-//     date: "2023-02-15",
-//     specialty: "Endocrinology",
-//     doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
-//     tags: ["Medication", "Diabetes"],
+//     title: "Blood Work Results",
+//     filename: "Blood_Work_Smith_John_20230408.pdf",
+//     fileSize: "1.8 MB",
+//     date: "2023-04-08",
+//     specialty: "Internal Medicine",
+//     doctor: {
+//       name: "Unknown Doctor",
+//       specialty: "Unknown",
+//       avatar: "/placeholder.svg",
+//     }, // Dr. Emily Rodriguez
+//     tags: ["Lab Results", "Blood Work"],
 //   },
-//   // Continue with the same pattern for the remaining clinical notes
 //   {
 //     id: "3",
-//     title: "Respiratory Assessment",
-//     content:
-//       "Patient reports occasional shortness of breath during moderate exertion. Lung examination reveals clear breath sounds bilaterally. No wheezing or crackles. Oxygen saturation 97% at rest. Recommended pulmonary function testing to establish baseline. Discussed importance of avoiding respiratory irritants.",
+//     title: "Chest X-Ray",
+//     filename: "Chest_XRay_Smith_John_20230305.jpg",
+//     fileSize: "3.2 MB",
 //     date: "2023-03-05",
 //     specialty: "Pulmonology",
-//     doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
-//     tags: ["Respiratory", "Assessment"],
+//     doctor: {
+//       name: "Unknown Doctor",
+//       specialty: "Unknown",
+//       avatar: "/placeholder.svg",
+//     }, // Dr. Sarah Chen
+//     tags: ["X-Ray", "Imaging", "Chest"],
 //   },
 //   {
 //     id: "4",
-//     title: "Neurological Consultation",
-//     content:
-//       "Patient reports intermittent headaches, primarily frontal, lasting 2-3 hours. No aura or associated symptoms. Neurological examination normal. No focal deficits. Recommended headache diary and over-the-counter analgesics as needed. Will reassess in 6 weeks.",
+//     title: "MRI Brain",
+//     filename: "MRI_Brain_Smith_John_20230120.dicom",
+//     fileSize: "15.6 MB",
 //     date: "2023-01-20",
 //     specialty: "Neurology",
-//     doctor:  { name: "Unknown Doctor", specialty: "Unknown", avatar: "/placeholder.svg" }, // Add fallback
-//     tags: ["Headache", "Consultation"],
+//     doctor: {
+//       name: "Unknown Doctor",
+//       specialty: "Unknown",
+//       avatar: "/placeholder.svg",
+//     }, // Dr. David Kim
+//     tags: ["MRI", "Imaging", "Neurology"],
 //   },
-// ]
-
-// Sample medical files organized by specialty
-const medicalFiles = [
-  {
-    id: "1",
-    title: "ECG Report",
-    filename: "ECG_Report_Smith_John_20230410.pdf",
-    fileSize: "2.4 MB",
-    date: "2023-04-10",
-    specialty: "Cardiology",
-    doctor: {
-      name: "Unknown Doctor",
-      specialty: "Unknown",
-      avatar: "/placeholder.svg",
-    }, // Dr. Sarah Johnson
-    tags: ["ECG", "Cardiology"],
-  },
-  {
-    id: "2",
-    title: "Blood Work Results",
-    filename: "Blood_Work_Smith_John_20230408.pdf",
-    fileSize: "1.8 MB",
-    date: "2023-04-08",
-    specialty: "Internal Medicine",
-    doctor: {
-      name: "Unknown Doctor",
-      specialty: "Unknown",
-      avatar: "/placeholder.svg",
-    }, // Dr. Emily Rodriguez
-    tags: ["Lab Results", "Blood Work"],
-  },
-  {
-    id: "3",
-    title: "Chest X-Ray",
-    filename: "Chest_XRay_Smith_John_20230305.jpg",
-    fileSize: "3.2 MB",
-    date: "2023-03-05",
-    specialty: "Pulmonology",
-    doctor: {
-      name: "Unknown Doctor",
-      specialty: "Unknown",
-      avatar: "/placeholder.svg",
-    }, // Dr. Sarah Chen
-    tags: ["X-Ray", "Imaging", "Chest"],
-  },
-  {
-    id: "4",
-    title: "MRI Brain",
-    filename: "MRI_Brain_Smith_John_20230120.dicom",
-    fileSize: "15.6 MB",
-    date: "2023-01-20",
-    specialty: "Neurology",
-    doctor: {
-      name: "Unknown Doctor",
-      specialty: "Unknown",
-      avatar: "/placeholder.svg",
-    }, // Dr. David Kim
-    tags: ["MRI", "Imaging", "Neurology"],
-  },
-];
+// ];
 
 // Helper function to group items by specialty
 function groupBySpecialty<T extends { specialty: string }>(
@@ -206,19 +163,19 @@ function groupBySpecialty<T extends { specialty: string }>(
 // Get specialty icon
 function getSpecialtyIcon(specialty: string) {
   switch (specialty) {
-    case "Cardiology":
+    case "cardiology":
       return <Heart className="h-4 w-4 text-red-500" />;
-    case "Neurology":
+    case "neurology":
       return <Brain className="h-4 w-4 text-purple-500" />;
-    case "Pulmonology":
+    case "pulmonology":
       return <Lungs className="h-4 w-4 text-blue-500" />;
-    case "Endocrinology":
+    case "endocrinology":
       return <Activity className="h-4 w-4 text-green-500" />;
-    case "Internal Medicine":
+    case "internal medicine":
       return <Stethoscope className="h-4 w-4 text-indigo-500" />;
-    case "Radiology":
+    case "radiology":
       return <FileText className="h-4 w-4 text-cyan-500" />;
-    case "Surgery":
+    case "surgery":
       return <Stethoscope className="h-4 w-4 text-amber-500" />;
     default:
       return <Stethoscope className="h-4 w-4 text-gray-500" />;
@@ -310,7 +267,10 @@ export function PatientRecordDetail({
       // Convert comma-separated string to array
       setClinicalNotesData({
         ...clinicalNotesData,
-        tags: value.split(',').map(tag => tag.trim()).filter(tag => tag !== '')
+        tags: value
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== ""),
       });
     } else {
       setClinicalNotesData({
@@ -329,19 +289,20 @@ export function PatientRecordDetail({
         );
 
         // Normalize clinical notes data to ensure all fields are present
-        const normalizedClinicalNotes = fetchedClinicalNotes.map(
-          (note) => ({
-            id: note.id || Date.now().toString(),
-            type: note.type || "ClinicalNote",
-            specialty: note.specialty || "",
-            title: note.title || "",
-            NoteContent: note.NoteContent || "",
-            NoteType: note.NoteType || "",
-            doctorID: note.doctorID || doctorId || "",
-            tags: Array.isArray(note.tags) ? note.tags : 
-            (typeof note.tags === 'string' ? (note.tags as string).split(',').map(t => t.trim()) : []),
-          })
-        );
+        const normalizedClinicalNotes = fetchedClinicalNotes.map((note) => ({
+          id: note.id || Date.now().toString(),
+          type: note.type || "ClinicalNote",
+          specialty: note.specialty || "",
+          title: note.title || "",
+          NoteContent: note.NoteContent || "",
+          NoteType: note.NoteType || "",
+          doctorID: note.doctorID || doctorId || "",
+          tags: Array.isArray(note.tags)
+            ? note.tags
+            : typeof note.tags === "string"
+            ? (note.tags as string).split(",").map((t) => t.trim())
+            : [],
+        }));
 
         setClinicalNotes(normalizedClinicalNotes);
       }
@@ -402,7 +363,7 @@ export function PatientRecordDetail({
       console.error("Error adding clinical note:", error);
       // Optional: Show error notification
     }
-  }
+  };
 
   const handleAddPrescription = async () => {
     try {
@@ -463,14 +424,259 @@ export function PatientRecordDetail({
       // Optional: Show error notification
     }
   };
-  //clinical notes part
+  const [documentsData, setDocumentsData] = useState({
+    id: Math.random().toString(), // Generate a unique ID
+    type: "Document",
+    specialty: "",
+    title: "",
+    Description: "",
+    documentType: "",
+    documentUrls: [] as string[],
+    doctorID: doctorId || "",
+    tags: [] as string[],
+    // New fields for file upload functionality
+    file: null as File | null,
+    isUploading: false,
+    uploadProgress: 0,
+  });
+
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+
+  // Fetch existing documents (keeping your existing code)
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (patientId) {
+        const fetchedDocuments = await getFiles(doctorId as string, patientId);
+        console.log("Fetched documents:", fetchedDocuments);
+        // Normalize clinical notes data to ensure all fields are present
+        const normalizedDocuments = fetchedDocuments.map((doc: Document) => ({
+          id: doc.id || Date.now().toString(),
+          type: doc.type || "Document",
+          specialty: doc.specialty || "",
+          title: doc.title || "",
+          description: doc.Description || "",
+          documentType: doc.documentType || "",
+          documentUrls: doc.documentUrls || [],
+          doctorID: doc.doctorID || doctorId || "",
+          file: doc.file || new File([], "default.txt"), // Placeholder for file
+          tags: Array.isArray(doc.tags)
+            ? doc.tags
+            : typeof doc.tags === "string"
+            ? (doc.tags as string).split(",").map((t) => t.trim())
+            : [],
+        }));
+
+        setDocuments(normalizedDocuments);
+      }
+    };
+    fetchDocuments();
+  }, [patientId]);
+
+  // Updated document change handler that works with both your existing code and new file functionality
+  const handleDocumentChange = (field: string, value: string) => {
+    if (field === "tags") {
+      // Convert comma-separated string to array
+      setDocumentsData((prev) => ({
+        ...prev,
+        tags: value
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== ""),
+      }));
+    } else {
+      setDocumentsData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
+  };
+
+  // Handle drag events
+  interface DragEventHandlers {
+    (e: React.DragEvent<HTMLDivElement>): void;
+  }
+
+  const handleDrag: DragEventHandlers = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }, []);
+
+  // Handle drop event
+  const handleDrop: DragEventHandlers = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  }, []);
+
+  // Handle file selection via input
+  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  // Common function to process the file
+  const handleFile = (file: File) => {
+    // Check file size (limit to 10MB for example)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size exceeds 10MB limit");
+      return;
+    }
+
+    // Store file in state
+    setDocumentsData((prev) => ({
+      ...prev,
+      file,
+      title: prev.title || file.name, // Use filename as default title if none provided
+    }));
+  };
+
+  // Upload to Cloudinary
+  const uploadToCloudinary = async () => {
+    if (!documentsData.file) {
+      alert("Please select a file to upload");
+      return;
+    }
+
+    setDocumentsData((prev) => ({
+      ...prev,
+      isUploading: true,
+      uploadProgress: 0,
+    }));
+
+    // Create form data
+    const formData = new FormData();
+    formData.append("file", documentsData.file);
+    formData.append(
+      "upload_preset",
+      import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+    );
+
+    try {
+      // Upload to Cloudinary
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${
+          import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+        }/image/upload`, // Replace with your Cloudinary cloud name
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.secure_url) {
+        // Update the document data with the new URL
+        setDocumentsData((prev) => ({
+          ...prev,
+          documentUrls: [...prev.documentUrls, data.secure_url],
+          isUploading: false,
+          uploadProgress: 100,
+        }));
+
+        // Now proceed to save the document
+        handleAddDocuments(data.secure_url);
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error("Error uploading to Cloudinary:", error);
+      setDocumentsData((prev) => ({ ...prev, isUploading: false }));
+      alert("Failed to upload file. Please try again.");
+    }
+  };
+
+  // Handle document addition - modified to use your existing function
+  const handleAddDocuments = async (fileUrl: string) => {
+    try {
+      // Add the new URL to documentUrls if provided
+      const updatedDocumentUrls = fileUrl
+        ? [...documentsData.documentUrls, fileUrl]
+        : documentsData.documentUrls;
+
+      const newDocument = {
+        ...documentsData,
+        id: `${Math.random().toString(36)}`, // Generate a unique ID
+        doctorID: doctorId || "",
+        type: "Document",
+        documentUrls: updatedDocumentUrls,
+      };
+
+      // Add the new document to the UI state immediately
+      setDocuments((prev) => [
+        ...prev,
+        {
+          ...newDocument,
+          type: "Document", // Ensure the type is explicitly set to "Document"
+        } as Document,
+      ]);
+
+      // Prepare the document data for blockchain
+      const typeConvertedDocument = JSON.stringify({
+        ...newDocument,
+      });
+
+      // Update the record in the blockchain
+      await updateRecord(
+        patientId,
+        doctorId as string,
+        newDocument.specialty,
+        "", // phoneNumber (not updating)
+        "", // address (not updating)
+        "null", // prescriptions (not updating)
+        "null", // notes (not updating)
+        typeConvertedDocument, // document
+        "null", // updated basicInfo
+        "null" // collab (not updating)
+      );
+
+      // Reset the form
+      setDocumentsData({
+        id: Math.random().toString(),
+        specialty: "",
+        title: "",
+        Description: "",
+        documentType: "",
+        documentUrls: [],
+        type: "Document",
+        doctorID: doctorId || "",
+        tags: [],
+        file: null,
+        isUploading: false,
+        uploadProgress: 0,
+      });
+
+      // Close the dialog
+      setIsAddFileDialogOpen(false);
+
+      // Optional: Show success notification
+      console.log("Document added successfully!");
+      console.log("documents", documents);
+    } catch (error) {
+      console.error("Error adding document:", error);
+      // Optional: Show error notification
+    }
+  };
   // Find the patient by ID
+
   const record = records?.find((p) => p.id === patientId);
 
   // Group notes, prescriptions, and files by specialty
   const notesBySpecialty = groupBySpecialty(clinicalNotes);
   const prescriptionsBySpecialty = groupBySpecialty(prescriptions);
-  const filesBySpecialty = groupBySpecialty(medicalFiles);
+  const filesBySpecialty = groupBySpecialty(documents);
 
   // Get unique specialties
   const specialties = Array.from(
@@ -1071,7 +1277,7 @@ export function PatientRecordDetail({
                   className="bg-indigo-600 hover:bg-indigo-700 gap-1"
                   onClick={() => setIsAddNoteDialogOpen(true)}
                 >
-                  <Plus className="h-4 w-4" />                                         {/* Add Note */}
+                  <Plus className="h-4 w-4" /> {/* Add Note */}
                   Add Note
                 </Button>
               </div>
@@ -1143,18 +1349,18 @@ export function PatientRecordDetail({
                             </CardContent>
                             <CardFooter className="border-t bg-gray-50 flex justify-between">
                               <div className="flex items-center gap-2">
-                              {(note.tags && Array.isArray(note.tags)) ? note.tags.map((tag, i) => (
-  <Badge key={i} variant="outline">
-    {tag}
-  </Badge>
-)) : null}
+                                {note.tags && Array.isArray(note.tags)
+                                  ? note.tags.map((tag, i) => (
+                                      <Badge key={i} variant="outline">
+                                        {tag}
+                                      </Badge>
+                                    ))
+                                  : null}
                               </div>
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-6 w-6">
                                   <AvatarImage
-                                    src={
-                                       "/placeholder.svg"
-                                    }
+                                    src={"/placeholder.svg"}
                                     alt={note.doctorID}
                                   />
                                   <AvatarFallback>
@@ -1244,11 +1450,11 @@ export function PatientRecordDetail({
                               <div className="flex items-center justify-between">
                                 <CardTitle>{file.title}</CardTitle>
                                 <span className="text-sm text-gray-500">
-                                  {new Date(file.date).toLocaleDateString()}
+                                  {new Date().toLocaleDateString()}
                                 </span>
                               </div>
                               <CardDescription>
-                                Uploaded by {file.doctor.name}
+                                Uploaded by {file.doctorID}
                               </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -1257,10 +1463,10 @@ export function PatientRecordDetail({
                                   <FileText className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <div className="flex-1">
-                                  <p className="font-medium">{file.filename}</p>
-                                  <p className="text-sm text-gray-500">
+                                  <p className="font-medium">{file.title}</p>
+                                  {/* <p className="text-sm text-gray-500">
                                     {file.fileSize}
-                                  </p>
+                                  </p> */}
                                 </div>
                               </div>
                             </CardContent>
@@ -1272,14 +1478,20 @@ export function PatientRecordDetail({
                                   </Badge>
                                 ))}
                               </div>
-                              <div className="flex gap-2">
-                                <Button variant="outline" size="sm">
+                             
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    window.open(
+                                      file.documentUrls[0],
+                                      "_blank"
+                                    )
+                                  }
+                                >
                                   View
                                 </Button>
-                                <Button variant="outline" size="sm">
-                                  Download
-                                </Button>
-                              </div>
+                                
                             </CardFooter>
                           </Card>
                         ))}
@@ -1465,12 +1677,22 @@ export function PatientRecordDetail({
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="note-title">Title</Label>
-              <Input id="note-title" placeholder="Enter note title" value={clinicalNotesData.title} onChange={(e)=>handleClinicalNoteChange("title",e.target.value)}/>
+              <Input
+                id="note-title"
+                placeholder="Enter note title"
+                value={clinicalNotesData.title}
+                onChange={(e) =>
+                  handleClinicalNoteChange("title", e.target.value)
+                }
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="note-specialty">Specialty</Label>
-              <Select onValueChange={(value) =>
-                  handlePrescriptionChange("specialty", value)}>
+              <Select
+                onValueChange={(value) =>
+                  handleClinicalNoteChange("specialty", value)
+                }
+              >
                 <SelectTrigger id="note-specialty">
                   <SelectValue placeholder="Select your specialty" />
                 </SelectTrigger>
@@ -1490,8 +1712,11 @@ export function PatientRecordDetail({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="note-type">Note Type</Label>
-              <Select onValueChange={(value) =>
-                  handlePrescriptionChange("NoteType", value)}>
+              <Select
+                onValueChange={(value) =>
+                  handleClinicalNoteChange("NoteType", value)
+                }
+              >
                 <SelectTrigger id="note-type">
                   <SelectValue placeholder="Select note type" />
                 </SelectTrigger>
@@ -1506,7 +1731,11 @@ export function PatientRecordDetail({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="note-content">Note Content</Label>
-              <Textarea value={clinicalNotesData.NoteContent} onChange={(e)=>handleClinicalNoteChange("NoteContent",e.target.value)}
+              <Textarea
+                value={clinicalNotesData.NoteContent}
+                onChange={(e) =>
+                  handleClinicalNoteChange("NoteContent", e.target.value)
+                }
                 id="note-content"
                 placeholder="Enter detailed clinical note..."
                 className="min-h-32"
@@ -1514,8 +1743,15 @@ export function PatientRecordDetail({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="note-tags">Tags</Label>
-              <Input value={Array.isArray(clinicalNotesData.tags) ? clinicalNotesData.tags.join(', ') : ''}
-  onChange={(e) => handleClinicalNoteChange("tags", e.target.value)}
+              <Input
+                value={
+                  Array.isArray(clinicalNotesData.tags)
+                    ? clinicalNotesData.tags.join(", ")
+                    : ""
+                }
+                onChange={(e) =>
+                  handleClinicalNoteChange("tags", e.target.value)
+                }
                 id="note-tags"
                 placeholder="Enter tags separated by commas (e.g., checkup, hypertension)"
               />
@@ -1688,19 +1924,97 @@ export function PatientRecordDetail({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center">
-              <Upload className="h-10 w-10 text-gray-400 mb-2" />
-              <p className="text-sm font-medium mb-1">
-                Drag and drop files here
-              </p>
-              <p className="text-xs text-gray-500 mb-3">or</p>
-              <Button variant="outline" size="sm">
-                Browse Files
-              </Button>
+            <div
+              className={`border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center ${
+                dragActive
+                  ? "border-indigo-600 bg-indigo-50"
+                  : "border-gray-300"
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              {documentsData.file ? (
+                <div className="text-center">
+                  <div className="flex items-center justify-center">
+                    <div className="bg-green-100 rounded-full p-2 mb-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6 text-green-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium mb-1">
+                    {documentsData.file.name}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-3">
+                    {(documentsData.file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setDocumentsData((prev) => ({ ...prev, file: null }))
+                    }
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                  <p className="text-sm font-medium mb-1">
+                    Drag and drop files here
+                  </p>
+                  <p className="text-xs text-gray-500 mb-3">or</p>
+                  <input
+                    type="file"
+                    id="file-upload"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    accept=".pdf,.jpg,.jpeg,.png,.dcm"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      document.getElementById("file-upload")?.click()
+                    }
+                  >
+                    Browse Files
+                  </Button>
+                </>
+              )}
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="file-title">Title</Label>
+              <Input
+                value={documentsData.title}
+                onChange={(e) => handleDocumentChange("title", e.target.value)}
+                id="file-title"
+                placeholder="Enter file title"
+              />
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="file-specialty">Specialty</Label>
-              <Select>
+              <Select
+                onValueChange={(value) =>
+                  handleDocumentChange("specialty", value)
+                }
+              >
                 <SelectTrigger id="file-specialty">
                   <SelectValue placeholder="Select your specialty" />
                 </SelectTrigger>
@@ -1720,7 +2034,11 @@ export function PatientRecordDetail({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="file-type">File Type</Label>
-              <Select>
+              <Select
+                onValueChange={(value) =>
+                  handleDocumentChange("documentType", value)
+                }
+              >
                 <SelectTrigger id="file-type">
                   <SelectValue placeholder="Select file type" />
                 </SelectTrigger>
@@ -1736,6 +2054,10 @@ export function PatientRecordDetail({
             <div className="grid gap-2">
               <Label htmlFor="file-description">Description</Label>
               <Textarea
+                value={documentsData.Description}
+                onChange={(e) =>
+                  handleDocumentChange("Description", e.target.value)
+                }
                 id="file-description"
                 placeholder="Enter a description of this file..."
                 className="min-h-20"
@@ -1744,10 +2066,75 @@ export function PatientRecordDetail({
             <div className="grid gap-2">
               <Label htmlFor="file-tags">Tags</Label>
               <Input
+                value={
+                  Array.isArray(documentsData.tags)
+                    ? documentsData.tags.join(", ")
+                    : ""
+                }
+                onChange={(e) => handleDocumentChange("tags", e.target.value)}
                 id="file-tags"
                 placeholder="Enter tags separated by commas (e.g., ECG, cardiology)"
               />
             </div>
+
+            {documentsData.isUploading && (
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-indigo-600 h-2.5 rounded-full"
+                  style={{ width: `${documentsData.uploadProgress}%` }}
+                ></div>
+              </div>
+            )}
+
+            {documentsData.documentUrls.length > 0 && (
+              <div className="mt-2">
+                <Label>Current Files</Label>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {documentsData.documentUrls.map((url, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-xs"
+                    >
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-indigo-600 hover:text-indigo-800"
+                      >
+                        File {index + 1}
+                      </a>
+                      <button
+                        type="button"
+                        className="ml-1 text-gray-500 hover:text-gray-700"
+                        onClick={() => {
+                          const newUrls = [...documentsData.documentUrls];
+                          newUrls.splice(index, 1);
+                          setDocumentsData((prev) => ({
+                            ...prev,
+                            documentUrls: newUrls,
+                          }));
+                        }}
+                      >
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -1758,9 +2145,10 @@ export function PatientRecordDetail({
             </Button>
             <Button
               className="bg-indigo-600 hover:bg-indigo-700"
-              onClick={() => setIsAddFileDialogOpen(false)}
+              onClick={uploadToCloudinary}
+              disabled={!documentsData.file || documentsData.isUploading}
             >
-              Upload File
+              {documentsData.isUploading ? "Uploading..." : "Upload File"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -92,11 +92,14 @@ export interface Prescription extends Data {
 }
 
 export interface Document extends Data {
+    id : string;
     type: 'Document';
     documentUrls: string[];
+    title: string;
     documentType: string;
     Description?: string; 
     tags: string[];
+    file:File
 }
 export type CaseStatus = "Open" | "Closed" | "Urgent"
 export type CaseType = "Consultation" | "Diagnosis" | "Treatment" | "Follow-up"
