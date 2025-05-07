@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { io ,Socket} from "socket.io-client"
 import { useState, useEffect } from "react"
 import {
   Search,
@@ -30,42 +30,20 @@ import { PatientRecords } from "./patient-records"
 import { PatientRecordDetail } from "./patient-record-details"
 import {toast} from "sonner"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-// Sample data for cases
-const cases = [
-  {
-    id: "MED-2023-1234",
-    title: "Unusual Cardiac Symptoms",
-    patientId: "P-78901",
-    patientName: "John Smith",
-    description:
-      "Patient presents with atypical chest pain and irregular ECG patterns. Initial tests show elevated cardiac enzymes but inconclusive stress test results.",
-    status: "Open",
-    createdAt: "2023-04-18T10:30:00Z",
-    participantCount: 4,
-    commentCount: 8,
-    attachmentCount: 2,
-    tags: ["Respiratory", "Consultation", "Urgent"],
-    daysActive: 3,
-  },
-  {
-    id: "MED-2023-1238",
-    title: "Diabetes Management Review",
-    patientId: "P-78901",
-    patientName: "John Smith",
-    description:
-      "Quarterly review of diabetes management plan and medication adjustments. Patient shows improved glucose control with current regimen.",
-    status: "Closed",
-    createdAt: "2023-04-10T14:30:00Z",
-    participantCount: 2,
-    commentCount: 6,
-    attachmentCount: 4,
-    tags: ["Diabetes", "Chronic", "Medication"],
-    daysActive: 11,
-  },
-]
+import { getDecodedToken } from "@/lib/jwtUtils"
+import { getCasesByDoctor } from "@/assets/data/cases"
+import { Case, CaseStatus } from "@/types"
+import {  getDoctorById } from "@/assets/data/doctors"
+const token=getDecodedToken();
+const doctorId=token?.userId;
+if(!doctorId) {
+  throw new Error("Doctor ID not found in token")
+}
+const doctor=await getDoctorById(doctorId);
+const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL || 'http://localhost:3970';
 
 export default function CollaborationCase() {
+  const [cases, setCases] = useState<Case[]>([])
   
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false)
   const [newComment, setNewComment] = useState("")
@@ -77,6 +55,67 @@ export default function CollaborationCase() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCase, setActiveCase] = useState<(typeof cases)[0] | null>(null)
   const [quickFilter, setQuickFilter] = useState<string | null>(null)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [isAttachingFiles, setIsAttachingFiles] = useState(false)
+  const [currentRoom, setCurrentRoom] = useState<string>('');
+  const [socket, setSocket] = useState<Socket | null>(null)
+  
+    useEffect(() => {const newSocket : Socket=io(SOCKET_SERVER_URL);
+    setSocket(newSocket);
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
+  useEffect(() => {
+    if (!currentRoom) return;
+
+    const fetchComments = async () => {
+      try {
+        const response = await fetch(`${SOCKET_SERVER_URL}/api/threads/rooms/${currentRoom}/comments`);
+        const data :Comment[]= await response.json();
+        setComments(data);
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+      }
+    };
+
+    fetchComments();
+
+    // Join the room
+    if (socket) {
+      socket.emit('join_room', currentRoom);
+    }
+
+    // Cleanup: leave room when changing rooms
+    return () => {
+      if (socket) {
+        socket.emit('leave_room', currentRoom);
+      }
+    };
+  }, [currentRoom, socket]);
+  
+  
+  useEffect(() => {
+    if (doctorId) {
+      getCasesByDoctor(doctorId)
+      .then((data) => {
+        if (data) {
+          setCases(data)
+        } else {
+          console.error("No cases found for the doctor.")
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching cases:", error)
+      })
+    }
+  }, [])
+  
+
+
+
+
+  
   interface Comment {
     id: string
     author: {
@@ -91,8 +130,6 @@ export default function CollaborationCase() {
     replies: Comment[]
   }
 
-  const [comments, setComments] = useState<Comment[]>([])
-  const [isAttachingFiles, setIsAttachingFiles] = useState(false)
 
   // Load case details when selectedCaseId changes
   useEffect(() => {
@@ -104,45 +141,12 @@ export default function CollaborationCase() {
     } else {
       setActiveCase(null)
     }
-  }, [selectedCaseId])
+  }, [selectedCaseId, cases])
 
   const handleCaseSelect = (caseId: string) => {
     setSelectedCaseId(caseId)
     setActiveView("case-detail")
-    // Simulate loading comments
-    setTimeout(() => {
-      // This would be a real API call in a production app
-      setComments([
-        {
-          id: "1",
-          author: {
-            name: "Dr. Michael Chen",
-            avatar: "/placeholder.svg?height=40&width=40",
-            specialty: "Radiologist",
-          },
-          content:
-            "Based on the ECG patterns and enzyme levels, we should consider conducting a coronary angiogram for better visualization of the coronary arteries.",
-          timestamp: "1 day ago",
-          likes: 2,
-          userLiked: false,
-          replies: [],
-        },
-        {
-          id: "2",
-          author: {
-            name: "Dr. Emily Rodriguez",
-            avatar: "/placeholder.svg?height=40&width=40",
-            specialty: "Internal Medicine",
-          },
-          content:
-            "I agree with Dr. Chen. The atypical presentation suggests we need more detailed imaging. I also recommend a 24-hour Holter monitor to catch any intermittent arrhythmias.",
-          timestamp: "12 hours ago",
-          likes: 2,
-          userLiked: false,
-          replies: [],
-        },
-      ])
-    }, 300)
+    setCurrentRoom(caseId)
   }
 
   const handlePatientSelect = (patientId: string) => {
@@ -158,18 +162,19 @@ export default function CollaborationCase() {
       setActiveView("patient-records")
     }
     setSelectedCaseId(null)
+    setCurrentRoom('')
   }
 
   const handlePostComment = () => {
     if (!newComment.trim()) return
 
     // Add the new comment to the comments array
-    const newCommentObj = {
+    const newCommentObj:Comment = {
       id: `comment-${Date.now()}`,
       author: {
-        name: "Dr. Sarah Johnson", // Current user
-        avatar: "/placeholder.svg?height=40&width=40",
-        specialty: "Cardiologist",
+        name: doctor?.name || "unkown doctor", 
+        avatar: doctor?.avatar||"/placeholder.svg?height=40&width=40",
+        specialty: doctor?.specialty || "unkown specialty",
       },
       content: newComment,
       timestamp: "Just now",
@@ -177,8 +182,11 @@ export default function CollaborationCase() {
       userLiked: false,
       replies: [],
     }
+    if (socket) {
+      socket.emit("new_comment", {roomId:selectedCaseId,comment:newCommentObj}); //###### check room's name and arguments needed
+    }
 
-    setComments([...comments, newCommentObj])
+    setComments((prevComments) => [...prevComments, newCommentObj]);
     setNewComment("")
 
     // Show success toast
@@ -189,11 +197,14 @@ export default function CollaborationCase() {
   }
 
   const handleBackToPatientList = () => {
+    setCurrentRoom('');
+    setSelectedCaseId(null)
     setActiveView("patient-records")
     setSelectedPatientId(null)
   }
 
   const handleCloseCase = () => {
+
     setIsCloseDialogOpen(true)
   }
 
@@ -397,7 +408,7 @@ export default function CollaborationCase() {
                   <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       <User className="h-3.5 w-3.5" />
-                      <span>{activeCase.participantCount} Participating Doctors</span>
+                      <span>{activeCase.participants.length} Participating Doctors</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
@@ -445,11 +456,11 @@ export default function CollaborationCase() {
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-sm">Days Active</span>
-                            <span className="font-medium">{activeCase.daysActive}</span>
+                            <span className="font-medium">{}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-sm">Participating Doctors</span>
-                            <span className="font-medium">{activeCase.participantCount}</span>
+                            <span className="font-medium">{activeCase.participants.length}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-sm">Comments</span>
@@ -603,7 +614,7 @@ export default function CollaborationCase() {
         onCaseClosed={() => {
           if (activeCase) {
             // Update the case status
-            const updatedCase = { ...activeCase, status: "Closed" }
+            const updatedCase = { ...activeCase, status: "Closed"  as CaseStatus }
             setActiveCase(updatedCase)
 
             toast.success( "The collaboration case has been closed successfully.",

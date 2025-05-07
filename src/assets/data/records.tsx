@@ -165,8 +165,6 @@ export async function findRecordsForSpecificDoctor(doctorId: string): Promise<Re
       }
     );
 
-   
-
     // Vérifier que les données existent
     if (!res.data) {
       console.log("No record found or invalid response format");
@@ -263,8 +261,8 @@ export async function findRecordByID(
       return undefined;
     }
 
-    const record: Record = res.data;
-    console.log("Fetched record:", record);
+    const record: Record = res.data.message.response;
+    console.log("Fetched akel record:", record);
     
     return {
       ...record,

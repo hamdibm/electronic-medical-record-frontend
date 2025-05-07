@@ -26,13 +26,12 @@ export interface FormData {
     collaborators: string[];
     finalDecision?: FinalDecision;
     isClosed: boolean;
-    // createdAt: string;
+    createdAt: string;
     createdBy: string;
 }
 export interface FinalDecision {
     doctorId: string;
     content: string;
-    // closedAt: string;
 }
 
 export interface Record {
@@ -47,7 +46,7 @@ export interface Record {
   data: RecordEntry[];
   accessList: string[];
   accessHistory: string[];
-  collabs: CollaborationCase[];
+  collabs: Case[];
   basicInfo?: BasicInfo;
   status: string;
 }

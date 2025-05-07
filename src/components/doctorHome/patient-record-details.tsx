@@ -59,9 +59,10 @@ import {
 import { NewCaseDialog } from "./new-case-dialog";
 import { getDecodedToken } from "@/lib/jwtUtils";
 import { getPrescriptions } from "@/assets/data/prescriptions";
-import { ClinicalNote, Document, Prescription } from "@/types";
+import { Case, ClinicalNote, Document, Prescription } from "@/types";
 import { getNotes } from "@/assets/data/clinicalNotes";
 import { getFiles } from "@/assets/data/files";
+import { getCasesByRecordId } from "@/assets/data/cases";
 
 const token = getDecodedToken();
 const doctorId = token?.userId;
@@ -86,65 +87,7 @@ interface PatientRecordDetailProps {
   onCaseSelect?: (caseId: string) => void;
 }
 
-// Sample medical files organized by specialty
-// const medicalFiles = [
-//   {
-//     id: "1",
-//     title: "ECG Report",
-//     filename: "ECG_Report_Smith_John_20230410.pdf",
-//     fileSize: "2.4 MB",
-//     date: "2023-04-10",
-//     specialty: "Cardiology",
-//     doctor: {
-//       name: "Unknown Doctor",
-//       specialty: "Unknown",
-//       avatar: "/placeholder.svg",
-//     }, // Dr. Sarah Johnson
-//     tags: ["ECG", "Cardiology"],
-//   },
-//   {
-//     id: "2",
-//     title: "Blood Work Results",
-//     filename: "Blood_Work_Smith_John_20230408.pdf",
-//     fileSize: "1.8 MB",
-//     date: "2023-04-08",
-//     specialty: "Internal Medicine",
-//     doctor: {
-//       name: "Unknown Doctor",
-//       specialty: "Unknown",
-//       avatar: "/placeholder.svg",
-//     }, // Dr. Emily Rodriguez
-//     tags: ["Lab Results", "Blood Work"],
-//   },
-//   {
-//     id: "3",
-//     title: "Chest X-Ray",
-//     filename: "Chest_XRay_Smith_John_20230305.jpg",
-//     fileSize: "3.2 MB",
-//     date: "2023-03-05",
-//     specialty: "Pulmonology",
-//     doctor: {
-//       name: "Unknown Doctor",
-//       specialty: "Unknown",
-//       avatar: "/placeholder.svg",
-//     }, // Dr. Sarah Chen
-//     tags: ["X-Ray", "Imaging", "Chest"],
-//   },
-//   {
-//     id: "4",
-//     title: "MRI Brain",
-//     filename: "MRI_Brain_Smith_John_20230120.dicom",
-//     fileSize: "15.6 MB",
-//     date: "2023-01-20",
-//     specialty: "Neurology",
-//     doctor: {
-//       name: "Unknown Doctor",
-//       specialty: "Unknown",
-//       avatar: "/placeholder.svg",
-//     }, // Dr. David Kim
-//     tags: ["MRI", "Imaging", "Neurology"],
-//   },
-// ];
+
 
 // Helper function to group items by specialty
 function groupBySpecialty<T extends { specialty: string }>(
@@ -196,7 +139,24 @@ export function PatientRecordDetail({
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(
     null
   );
+const[cases,setCases]=useState<Case[]>([]);
+const [isLoadingCases, setIsLoadingCases] = useState(true); 
 
+  useEffect(() => {
+    const fetchCases = async () => {
+      if (patientId) {
+        setIsLoadingCases(true);
+        const fetchedCases = await getCasesByRecordId(patientId);
+        setCases(fetchedCases);
+        setIsLoadingCases(false);
+      }
+    };
+
+    fetchCases();
+  }, [patientId]);
+
+  // Vérifiez si des cas existent
+  const hasCases = cases.length > 0;
   const [PrescriptionData, setPrescriptionData] = useState<Prescription>({
     id: Math.random().toString(36), // Generate a unique ID
     type: "Prescription",
@@ -253,7 +213,7 @@ export function PatientRecordDetail({
   console.log("Fetched prescriptions:", prescriptions);
 
   const [clinicalNotesData, setClinicalNotesData] = useState<ClinicalNote>({
-    id: Math.random().toString(), // Generate a unique ID
+    id: Math.random().toString(), 
     type: "ClinicalNote",
     specialty: "",
     title: "",
@@ -371,7 +331,7 @@ export function PatientRecordDetail({
       const newPrescription: Prescription = {
         ...PrescriptionData,
         id: `${Math.random().toString(36)}`, // Generate a unique ID
-        status: "Active",
+    status: "Active",
         doctorID: doctorId || "",
         type: "Prescription",
       };
@@ -402,7 +362,7 @@ export function PatientRecordDetail({
       setPrescriptionData({
         id: "",
         specialty: "",
-        status: "Active",
+    status: "Active",
         type: "Prescription",
         MedicationName: "",
         Dosage: "",
@@ -934,24 +894,24 @@ export function PatientRecordDetail({
                     <div className="space-y-6">
                       {Object.entries(prescriptionsBySpecialty).map(
                         ([specialty, medications]) => (
-                          <div key={specialty}>
-                            <div className="flex items-center gap-2 mb-3">
-                              {getSpecialtyIcon(specialty)}
+                        <div key={specialty}>
+                          <div className="flex items-center gap-2 mb-3">
+                            {getSpecialtyIcon(specialty)}
                               <h3 className="text-base font-medium">
                                 {specialty}
                               </h3>
-                            </div>
-                            <div className="space-y-3 pl-6">
-                              {medications.map((medication) => (
+                          </div>
+                          <div className="space-y-3 pl-6">
+                            {medications.map((medication) => (
                                 <div
                                   key={medication.id}
                                   className="flex items-start gap-3 p-3 border rounded-md"
                                 >
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100">
-                                    <Pill className="h-4 w-4 text-indigo-600" />
-                                  </div>
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100">
+                                  <Pill className="h-4 w-4 text-indigo-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
                                       <h4 className="font-medium">
                                         {medication.MedicationName}
                                       </h4>
@@ -959,43 +919,43 @@ export function PatientRecordDetail({
                                         variant="outline"
                                         className="bg-green-50 text-green-700 border-green-200"
                                       >
-                                        {medication.status}
-                                      </Badge>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                      {medication.status}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
                                       <span>Dosage: {medication.Dosage}</span>
-                                      <span>•</span>
+                                    <span>•</span>
                                       <span>
                                         Frequency: {medication.Frequency}
                                       </span>
-                                    </div>
-                                    <div className="text-sm text-gray-500 mt-1">
+                                  </div>
+                                  <div className="text-sm text-gray-500 mt-1">
                                       <span>
                                         Instructions: {medication.instructions}
                                       </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-2">
-                                      <Avatar className="h-5 w-5">
-                                        <AvatarImage
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <Avatar className="h-5 w-5">
+                                      <AvatarImage
                                           src={"/placeholder.svg"}
                                           alt={medication.doctorID}
-                                        />
-                                        <AvatarFallback>
+                                      />
+                                      <AvatarFallback>
                                           {medication.doctorID
-                                            .split(" ")
-                                            .map((n) => n[0])
-                                            .join("")}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <span className="text-xs text-gray-500">
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join("")}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-xs text-gray-500">
                                         Prescribed by {medication.doctorID}
-                                      </span>
-                                    </div>
+                                    </span>
                                   </div>
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                            ))}
                           </div>
+                        </div>
                         )
                       )}
                       <Button
@@ -1084,7 +1044,7 @@ export function PatientRecordDetail({
                         )}
                       </div>
                     </div>
-                    {/* ################################## still not treated */}
+{/* ################################## still not treated */}
                     <div>
                       <h3 className="text-sm font-medium mb-2">
                         Visit History
@@ -1351,9 +1311,9 @@ export function PatientRecordDetail({
                               <div className="flex items-center gap-2">
                                 {note.tags && Array.isArray(note.tags)
                                   ? note.tags.map((tag, i) => (
-                                      <Badge key={i} variant="outline">
-                                        {tag}
-                                      </Badge>
+                                  <Badge key={i} variant="outline">
+                                    {tag}
+                                  </Badge>
                                     ))
                                   : null}
                               </div>
@@ -1514,140 +1474,82 @@ export function PatientRecordDetail({
               </div>
 
               <div className="space-y-3">
-                {record.collabs.length > 0 ? (
-                  <>
-                    <Card>
+          {isLoadingCases ? (
+            <div className="text-center text-gray-500">Loading cases...</div>
+          ) : hasCases ? (
+            cases.map((caseItem) => (
+              <Card key={caseItem.id}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle>Unusual Cardiac Symptoms</CardTitle>
-                          <Badge className="bg-blue-50 text-blue-700 border-blue-200">
-                            Open
+                    <CardTitle>{caseItem.title}</CardTitle>
+                    <Badge
+                      className={`${
+                        caseItem.status === "Open"
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : "bg-gray-100 text-gray-700 border-gray-200"
+                      }`}
+                    >
+                      {caseItem.status}
                           </Badge>
                         </div>
-                        <CardDescription>
-                          Case #MED-2023-1234 • Created April 18, 2023
-                        </CardDescription>
+                  <CardDescription>
+                    Case #{caseItem.id} • Created{" "}
+                    {new Date(caseItem.createdAt).toLocaleDateString()}
+                  </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm mb-3">
-                          Patient presents with atypical chest pain and
-                          irregular ECG patterns. Initial tests show elevated
-                          cardiac enzymes but inconclusive stress test results.
-                        </p>
+                  <p className="text-sm mb-3">{caseItem.description}</p>
                         <div className="flex flex-wrap gap-1 mb-3">
-                          <Badge variant="outline" className="bg-gray-100">
-                            #Cardiology
+                    {caseItem.tags.map((tag, i) => (
+                      <Badge key={i} variant="outline" className="bg-gray-100">
+                        #{tag}
                           </Badge>
-                          <Badge variant="outline" className="bg-gray-100">
-                            #ECG
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="bg-amber-100 text-amber-700"
-                          >
-                            #Urgent
-                          </Badge>
+                    ))}
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-500">
-                            4 participating doctors
-                          </span>
+                    <span className="text-sm text-gray-500">
+                      {caseItem.participants.length} participating doctors
+                    </span>
                         </div>
                       </CardContent>
                       <CardFooter className="border-t bg-gray-50 flex justify-between">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
-                            <AvatarImage
-                              src="/placeholder.svg?height=40&width=40"
-                              alt="Dr. Sarah Johnson"
-                            />
-                            <AvatarFallback>SJ</AvatarFallback>
+                      <AvatarImage
+                        src={caseItem.createdBy.avatar || "/placeholder.svg"}
+                        alt={caseItem.createdBy.name}
+                      />
+                      <AvatarFallback>
+                        {caseItem.createdBy.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm">
-                            Created by Dr. Sarah Johnson
-                          </span>
+                    <span className="text-sm">
+                      Created by {caseItem.createdBy.name}
+                    </span>
                         </div>
                         <Button
                           className="bg-indigo-600 hover:bg-indigo-700"
-                          onClick={() =>
-                            onCaseSelect && onCaseSelect("MED-2023-1234")
-                          }
+                    onClick={() =>
+                      onCaseSelect && onCaseSelect(caseItem.id)
+                    }
                         >
                           View Case
                         </Button>
                       </CardFooter>
                     </Card>
-
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle>Diabetes Management Review</CardTitle>
-                          <Badge className="bg-gray-100 text-gray-700 border-gray-200">
-                            Closed
-                          </Badge>
-                        </div>
-                        <CardDescription>
-                          Case #MED-2023-1238 • Created April 10, 2023
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm mb-3">
-                          Quarterly review of diabetes management plan and
-                          medication adjustments. Patient shows improved glucose
-                          control with current regimen.
-                        </p>
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          <Badge variant="outline" className="bg-gray-100">
-                            #Diabetes
-                          </Badge>
-                          <Badge variant="outline" className="bg-gray-100">
-                            #Chronic
-                          </Badge>
-                          <Badge variant="outline" className="bg-gray-100">
-                            #Medication
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-500">
-                            2 participating doctors
-                          </span>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="border-t bg-gray-50 flex justify-between">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage
-                              src="/placeholder.svg?height=40&width=40"
-                              alt="Dr. Sarah Johnson"
-                            />
-                            <AvatarFallback>SJ</AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm">
-                            Created by Dr. Sarah Johnson
-                          </span>
-                        </div>
-                        <Button
-                          className="bg-indigo-600 hover:bg-indigo-700"
-                          onClick={() =>
-                            onCaseSelect && onCaseSelect("MED-2023-1238")
-                          }
-                        >
-                          View Case
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  </>
+            ))
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <MessageSquare className="h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-1">
-                      No collaboration cases
-                    </h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                No collaboration cases
+              </h3>
                     <p className="text-gray-500 mb-4">
-                      This patient doesn't have any active or past collaboration
-                      cases
+                      This patient doesn't have any active or past collaboration cases
                     </p>
                     <Button
                       onClick={() => setIsNewCaseDialogOpen(true)}
@@ -1973,11 +1875,11 @@ export function PatientRecordDetail({
                 </div>
               ) : (
                 <>
-                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
+              <Upload className="h-10 w-10 text-gray-400 mb-2" />
                   <p className="text-sm font-medium mb-1">
                     Drag and drop files here
                   </p>
-                  <p className="text-xs text-gray-500 mb-3">or</p>
+              <p className="text-xs text-gray-500 mb-3">or</p>
                   <input
                     type="file"
                     id="file-upload"
@@ -1992,8 +1894,8 @@ export function PatientRecordDetail({
                       document.getElementById("file-upload")?.click()
                     }
                   >
-                    Browse Files
-                  </Button>
+                Browse Files
+              </Button>
                 </>
               )}
             </div>

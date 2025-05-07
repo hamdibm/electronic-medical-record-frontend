@@ -1,12 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ThumbsUp, MessageSquare, ChevronDown, ChevronUp, Send } from "lucide-react"
 import { toast } from "sonner"
-
+import { getDecodedToken } from "@/lib/jwtUtils"
+import { getDoctorById } from "@/assets/data/doctors"
+const token=getDecodedToken();
+const doctorId=token?.userId;
+if(!doctorId) {
+  throw new Error("Doctor ID not found in token")
+}
+const doctor = await getDoctorById(doctorId);
 type Comment = {
   id: string
   author: {
@@ -34,10 +41,12 @@ interface CommentThreadProps {
 }
 
 export function CommentThread({ initialComments = [] }: CommentThreadProps) {
-  
+  useEffect(() => {
+    setComments(initialComments); // Update comments when the prop changes
+  }, [initialComments]);
   const [comments, setComments] = useState<Comment[]>(initialComments)
   // const [newComment, setNewComment] = useState("")
-
+ 
   const toggleLike = (commentId: string, commentList: Comment[] = comments): Comment[] => {
     return commentList.map((comment ) => {
       if (comment.id === commentId) {
@@ -71,9 +80,9 @@ export function CommentThread({ initialComments = [] }: CommentThreadProps) {
         const newReply: Comment = {
           id: `reply-${Date.now()}`,
           author: {
-            name: "Dr. Sarah Johnson", // Current user
-            avatar: "/placeholder.svg?height=40&width=40",
-            specialty: "Cardiologist",
+            name: doctor?.name || "unkown doctor", // Current user
+            avatar: doctor?.avatar||"/placeholder.svg?height=40&width=40",
+            specialty: doctor?.specialty || "unkown specialty",
           },
           content,
           timestamp: "Just now",
@@ -97,16 +106,16 @@ export function CommentThread({ initialComments = [] }: CommentThreadProps) {
       return comment
     })
   }
-
+  
   // const handleAddComment = () => {
   //   if (!newComment.trim()) return
 
   //   const newCommentObj: Comment = {
   //     id: `comment-${Date.now()}`,
   //     author: {
-  //       name: "Dr. Sarah Johnson", // Current user
-  //       avatar: "/placeholder.svg?height=40&width=40",
-  //       specialty: "Cardiologist",
+  //       name: doctor?.name || "unkown doctor", 
+  //       avatar: doctor?.avatar||"/placeholder.svg?height=40&width=40",
+  //       specialty: doctor?.specialty || "unkown specialty",
   //     },
   //     content: newComment,
   //     timestamp: "Just now",
@@ -118,11 +127,7 @@ export function CommentThread({ initialComments = [] }: CommentThreadProps) {
   //   setComments([...comments, newCommentObj])
   //   setNewComment("")
 
-  //   toast({
-  //     title: "Comment added",
-  //     description: "Your comment has been added to the discussion.",
-  //     duration: 2000,
-  //   })
+  //   toast("Your comment has been added to the discussion.")
   // }
 
   return (

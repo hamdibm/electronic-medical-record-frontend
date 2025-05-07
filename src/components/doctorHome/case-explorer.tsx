@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Search,
   Filter,
@@ -14,6 +14,7 @@ import {
   Star,
   Plus,
   MessageSquare,
+  Loader2,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -26,16 +27,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { NewCaseDialog } from "./new-case-dialog"
 import { toast } from "sonner"
 import { Case, CaseStatus, CaseType } from "../../types"
-import { getCasesByDoctor } from "@/assets/data/cases"
+import { createCase, getCasesByDoctor, updateCase } from "@/assets/data/cases"
 import { getDecodedToken } from "@/lib/jwtUtils"
+
+import {  Doctor, getDoctorById } from "@/assets/data/doctors"
+
 const token=getDecodedToken();
 const doctorId=token?.userId;
-const myCases = await getCasesByDoctor(doctorId as string).then((res) => {
-  return res;
-}).catch((err) => {
-  console.error("Error fetching cases:", err);
-  return [];
-})
 
 interface CaseExplorerProps {
   onCaseSelect?: (caseId: string) => void
@@ -47,8 +45,51 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [isNewCaseDialogOpen, setIsNewCaseDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
-  const [cases, setCases] = useState(myCases)
+  const [cases, setCases] = useState<Case[]>()
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [doctorCreator, setDoctorCreator] = useState<Doctor | null>(null)
+  useEffect(() => {
+    const fetchDoctorCreator = async () => {
+      try {
+        const doctorCreator = await getDoctorById(doctorId as string);
+        console.log("Doctor Creatoooooooooor:", doctorCreator);
+        if (doctorCreator) {
+          setDoctorCreator(doctorCreator);
+        }
+      } catch (error) {
+        console.error("Error fetching doctor creator:", error);
+      }
+    };
+
+    if (doctorId) {
+      fetchDoctorCreator();
+    }
+  }, []);
+
+  console.log("Doctor Creator:", doctorCreator);
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        setIsLoading(true)
+        const myCases = await getCasesByDoctor(doctorId as string)
+        setCases(myCases)
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching cases:", error)
+      }finally {
+        setIsLoading(false)
+      }
+    }
+    if (doctorId) {
+      fetchCases();
+    } else {
+      setError("Doctor ID is not available.");
+      setIsLoading(false);
+    }
+  }
+  , [])
 
   // Filter cases based on search query
   const filterCases = (cases: Case[]) => {
@@ -69,10 +110,10 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
   const activeCases = cases?.filter((c) => c.status === "Open" || c.status === "Urgent")
 
   // Filter cases I've created
-  const casesICreated = cases?.filter((c) => c.createdBy.id === "1") // Assuming current user is Dr. Sarah Johnson
+  const casesICreated = cases?.filter((c) => c.createdBy.id === doctorId) 
 
   // Filter cases I've joined
-  const casesIJoined = cases?.filter((c) => c.createdBy.id !== "1" && c.participants.some((p) => p.id === "1"))
+  const casesIJoined = cases?.filter((c) => c.createdBy.id !== doctorId && c.participants.some((p) => p.id === doctorId))
 
   // Get status badge color
   const getStatusColor = (status: CaseStatus) => {
@@ -124,19 +165,35 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
     }
   }
 
-  const handleToggleStar = (caseId: string) => {
-    setCases(
-      cases?.map((c) => {
-        if (c.id === caseId) {
-          const newStarredState = !c.isStarred
-          
-          return { ...c, isStarred: newStarredState }
-        }
-        return c
-      }),
-    )
+  const handleToggleStar = async (caseId: string) => {
+    try {
+      const caseToUpdate = cases?.find((c) => c.id === caseId)
+      if (!caseToUpdate) {
+        toast.error("Case not found.")
+        return
+      }
+      const newStarredState = !caseToUpdate.isStarred
+      setCases(
+        cases?.map((c) => {
+          if (c.id === caseId) {
+            return { ...c, isStarred: newStarredState };
+          }
+          return c;
+        }),
+      );
+      const updatedCase = await updateCase(caseId, { isStarred: !caseToUpdate?.isStarred })
+      setCases((prevCases) =>
+        prevCases?.map((c) => (c.id === caseId ? { ...c, isStarred: updatedCase.isStarred } : c)),
+      )
+      toast.success(`Case ${newStarredState ? "starred" : "unstarred"} successfully.`)
+  }catch (error) {
+      console.error("Error toggling star:", error)
+      toast.error("Error toggling star.")
+      setCases(prevCases => prevCases?.map(c => c.id === caseId ? {...c, isStarred: !c.isStarred} : c));    
+    }
+      
+  
   }
-
   const handleFilterSelect = (filter: string) => {
     setActiveFilter(filter)
     toast( `Showing ${filter.toLowerCase()}`,)
@@ -145,53 +202,101 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
   }
-
-  const handleCaseCreated = (newCase: { 
+  
+  const handleCaseCreated = async (newCase: { 
+    
     title?: string; 
     description?: string; 
-    caseType?: CaseType; 
+    type?: CaseType;             
+    status?: CaseStatus;         
     patient?: { id: string; name: string }; 
     doctors?: { id: string; name: string; avatar: string; specialty: string }[]; 
     tags?: string[]; 
   }) => {
-    // In a real app, this would be the actual case data returned from the API
-    const createdCase: Case = {
-      id: `MED-2023-${Math.floor(1000 + Math.random() * 9000)}`,
-      title: newCase.title || "New Case",
-      patientName: newCase.patient?.name || "Unknown Patient",
-      patientId: newCase.patient?.id || "Unknown ID",
-      description: newCase.description || "No description provided",
-      status: "Open",
-      type: (newCase.caseType as CaseType) || "Consultation",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: {
-        id: "1",
-        name: "Dr. Sarah Johnson",
-        avatar: "/placeholder.svg?height=40&width=40",
-        specialty: "Cardiologist",
-      },
-      participants:
-        newCase.doctors?.map((doctor) => ({
-          id: doctor.id,
-          name: doctor.name,
-          avatar: doctor.avatar,
-          specialty: doctor.specialty,
-        })) || [],
-      tags: newCase.tags || [],
-      commentCount: 0,
-      attachmentCount: 0,
-      isStarred: false,
+    try {
+      setIsLoading(true);
+      
+      
+  
+      // Create the case object to send to the backend
+      const caseData: Case = {
+         // Generate a unique ID for the case
+        id: Array.from({ length: 6 }, () => 
+          String.fromCharCode(97 + Math.floor(Math.random() * 26))
+        ).join(''),
+        title: newCase.title || "",
+        description: newCase.description || "",
+        type: newCase.type || "Consultation",     // Use type directly
+        status: newCase.status || "Open",         // Use provided status or default to "Open"
+        createdBy: {
+          id: doctorId as string,
+          name: doctorCreator?.name as string,
+          avatar: doctorCreator?.avatar as string,
+          specialty: doctorCreator?.specialty as string,
+        },
+        patientName: newCase.patient?.name || "",
+        patientId: newCase.patient?.id || "",
+        participants: newCase.doctors || [],
+        tags: newCase.tags || [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        attachmentCount: 0,
+        commentCount: 0,
+        isStarred: false,
+      };
+      
+      await createCase(caseData)
+        .then((response) => {
+          console.log("Case created successfully:", response);
+          setCases((prevCases) => [...(prevCases || []), response]);
+        })
+        .catch((error) => {
+          console.error("Error creating case:", error);
+          toast.error("Failed to create case. Please try again.");
+        });
+      
+      const casesResponse = await getCasesByDoctor(doctorId as string).then((response) => {
+        return response;
+      }).catch((error) => {
+        console.error("Error fetching cases:", error);
+        throw error;
+      });
+      setCases(casesResponse);
+      
+      toast.success("Your new collaboration case has been created successfully.");
+    } catch (err) {
+      console.error("Error creating new case:", err);
+      toast.error("Failed to create new case. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setIsNewCaseDialogOpen(false);
     }
-
-    setCases([createdCase, ...(cases || [])])
-    toast.success( "Your new collaboration case has been created successfully.",
-    )
   }
-
   // Render grid view of cases
   const renderGridView = (cases: Case[]) => {
-    const filteredCases = filterCases(cases)
+    const filteredCases = filterCases(cases);
+
+    if (isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mb-4" />
+          <p className="text-gray-500">Loading cases...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <FileText className="h-16 w-16 text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-1">Error</h3>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()} className="bg-indigo-600 hover:bg-indigo-700">
+            Retry
+          </Button>
+        </div>
+      );
+    }
 
     if (filteredCases.length === 0) {
       return (
@@ -272,14 +377,31 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
                   <p className="text-gray-500">{caseItem.patientId}</p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="ml-auto h-7 px-2"
-                onClick={() => onCaseSelect && onCaseSelect(caseItem.id)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleStar(caseItem.id);
+                  }}
+                >
+                  {caseItem.isStarred ? (
+                    <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                  ) : (
+                    <Star className="h-4 w-4 text-gray-300" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={() => onCaseSelect && onCaseSelect(caseItem.id)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         ))}
@@ -289,7 +411,29 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
 
   // Render list view of cases
   const renderListView = (cases: Case[]) => {
-    const filteredCases = filterCases(cases)
+    const filteredCases = filterCases(cases);
+
+    if (isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mb-4" />
+          <p className="text-gray-500">Loading cases...</p>
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <FileText className="h-16 w-16 text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-1">Error</h3>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()} className="bg-indigo-600 hover:bg-indigo-700">
+            Retry
+          </Button>
+        </div>
+      );
+    }
 
     if (filteredCases.length === 0) {
       return (
@@ -311,9 +455,18 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
           <div
             key={caseItem.id}
             className="flex items-center border rounded-md p-3 hover:border-indigo-200 hover:bg-indigo-50/10 transition-colors cursor-pointer"
+            onClick={() => onCaseSelect && onCaseSelect(caseItem.id)}
           >
             <div className="mr-3">
-              <Button variant="ghost" size="icon" className="h-7 w-7 p-0" onClick={() => handleToggleStar(caseItem.id)}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 p-0" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleStar(caseItem.id);
+                }}
+              >
                 {caseItem.isStarred ? (
                   <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
                 ) : (
@@ -391,7 +544,12 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2"
-                onClick={() => onCaseSelect && onCaseSelect(caseItem.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onCaseSelect) {
+                    onCaseSelect(caseItem.id);
+                  }
+                }}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -407,7 +565,11 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold">My Cases</h1>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 gap-1" onClick={() => setIsNewCaseDialogOpen(true)}>
+          <Button 
+            className="bg-indigo-600 hover:bg-indigo-700 gap-1" 
+            onClick={() => setIsNewCaseDialogOpen(true)}
+            disabled={isLoading}
+          >
             <Plus className="h-4 w-4" />
             New Case
           </Button>
@@ -422,12 +584,13 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
               className="w-full pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={isLoading}
             />
           </form>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1">
+              <Button variant="outline" size="sm" className="gap-1" disabled={isLoading}>
                 <Filter className="h-4 w-4" />
                 {activeFilter || "Filter"}
               </Button>
@@ -448,6 +611,7 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
               size="sm"
               className={`h-8 px-3 rounded-none ${viewMode === "grid" ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
               onClick={() => setViewMode("grid")}
+              disabled={isLoading}
             >
               Grid
             </Button>
@@ -456,6 +620,7 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
               size="sm"
               className={`h-8 px-3 rounded-none ${viewMode === "list" ? "bg-indigo-600 hover:bg-indigo-700" : ""}`}
               onClick={() => setViewMode("list")}
+              disabled={isLoading}
             >
               List
             </Button>
@@ -470,24 +635,28 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
               <TabsTrigger
                 value="all"
                 className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:shadow-none rounded-none h-10"
+                disabled={isLoading}
               >
                 All Cases
               </TabsTrigger>
               <TabsTrigger
                 value="active"
                 className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:shadow-none rounded-none h-10"
+                disabled={isLoading}
               >
                 Active Cases
               </TabsTrigger>
               <TabsTrigger
                 value="created"
                 className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:shadow-none rounded-none h-10"
+                disabled={isLoading}
               >
                 Created by Me
               </TabsTrigger>
               <TabsTrigger
                 value="joined"
                 className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 data-[state=active]:shadow-none rounded-none h-10"
+                disabled={isLoading}
               >
                 Joined
               </TabsTrigger>

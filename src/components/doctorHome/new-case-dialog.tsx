@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import {
   Dialog,
@@ -23,24 +22,27 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { X, Search, Plus } from "lucide-react"
+import { X, Search } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {findRecordsForSpecificDoctor} from "../../assets/data/records"
-// import { findRecordsForSpecificDoctor } from "../../assets/data/records" 
-import { CaseType } from "../../types"
+import {  CaseStatus, CaseType } from "../../types"
 import { getDecodedToken } from "@/lib/jwtUtils"
 import { Record } from "../../types"
+import { Doctor, getDoctorsByRecordId} from "@/assets/data/doctors"
+
 
 interface NewCaseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCaseCreated?: (newCase: {
+    
     title?: string
     description?: string
-    caseType?: CaseType
+    type?: CaseType        
+    status?: CaseStatus     
     patient?: { id: string; name: string }
-    doctors?: { id: string; name: string; avatar: string; specialty: string }[]
+    doctors?: { id: string; name: string; avatar: string; specialty: string }[] 
     tags?: string[]
   }) => void
   preselectedPatient?: Record
@@ -54,75 +56,22 @@ const records= await findRecordsForSpecificDoctor(doctorId as string).then((res)
   console.error("Error fetching patients:", err);
   return [];
 })
-
+console.log("Fetched zzzzzzzzzz records:", records)
 // Sample data for doctors
-const doctors = [
-  {
-    id: "1",
-    name: "Dr. Sarah Johnson",
-    specialty: "Cardiologist",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "2",
-    name: "Dr. Michael Chen",
-    specialty: "Radiologist",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "3",
-    name: "Dr. Emily Rodriguez",
-    specialty: "Internal Medicine",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "4",
-    name: "Dr. James Wilson",
-    specialty: "Surgeon",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: false,
-  },
-  {
-    id: "5",
-    name: "Dr. Sarah Chen",
-    specialty: "Pulmonologist",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "6",
-    name: "Dr. David Kim",
-    specialty: "Neurologist",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: false,
-  },
-  {
-    id: "7",
-    name: "Dr. Lisa Wong",
-    specialty: "Endocrinologist",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-]
-
-export function NewCaseDialog({ open, onOpenChange, preselectedPatient }: NewCaseDialogProps) {
+export function NewCaseDialog({ open, onOpenChange, preselectedPatient,onCaseCreated }: NewCaseDialogProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [caseType, setCaseType] = useState("")
   const [status, setStatus] = useState<string>("Open")
   const [patientSearch, setPatientSearch] = useState("")
   const [selectedPatient, setSelectedPatient] = useState<(Record) | null>(null)
-  const [selectedDoctors, setSelectedDoctors] = useState<(typeof doctors)[0][]>([])
-  const [doctorSearch, setDoctorSearch] = useState("")
   const [tags, setTags] = useState<string[]>([])
   const [currentTag, setCurrentTag] = useState("")
-
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  console.log("selectedPatient:", selectedPatient)
   // Set preselected patient when dialog opens
   useEffect(() => {
-    if (open && preselectedPatient) {                                                  //STOPED HERE LAST TIME##############################
+    if (open && preselectedPatient) {                                                  
       setSelectedPatient(preselectedPatient)
 
       // Pre-fill tags based on patient conditions
@@ -130,6 +79,7 @@ export function NewCaseDialog({ open, onOpenChange, preselectedPatient }: NewCas
         setTags(preselectedPatient.basicInfo?.conditions)
       }
     }
+    
   }, [open, preselectedPatient])
 
   // Reset form when dialog closes
@@ -148,16 +98,22 @@ export function NewCaseDialog({ open, onOpenChange, preselectedPatient }: NewCas
       )
     : records
 
-  // Filter doctors based on search and exclude already selected doctors
-  const filteredDoctors = doctorSearch
-    ? doctors
-        .filter(
-          (doctor) =>
-            doctor.name.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-            doctor.specialty.toLowerCase().includes(doctorSearch.toLowerCase()),
-        )
-        .filter((doctor) => !selectedDoctors.some((selected) => selected.id === doctor.id))
-    : doctors.filter((doctor) => !selectedDoctors.some((selected) => selected.id === doctor.id))
+  // doctors who can collaborate on this case
+  useEffect(() => {
+    if (selectedPatient) {
+      const fetchedoctors = getDoctorsByRecordId(selectedPatient.id)
+      fetchedoctors.then((data) => {
+        setDoctors(data)
+      })
+    }
+  }, [selectedPatient])
+  console.log("Doctors with access fetched:", doctors)
+        
+        
+  
+  
+  
+ 
 
   const handleAddTag = () => {
     if (currentTag && !tags.includes(currentTag)) {
@@ -170,43 +126,44 @@ export function NewCaseDialog({ open, onOpenChange, preselectedPatient }: NewCas
     setTags(tags.filter((tag) => tag !== tagToRemove))
   }
 
-  const handleAddDoctor = (doctor: (typeof doctors)[0]) => {
-    setSelectedDoctors([...selectedDoctors, doctor])
-    setDoctorSearch("")
-  }
 
-  const handleRemoveDoctor = (doctorId: string) => {
-    setSelectedDoctors(selectedDoctors.filter((doctor) => doctor.id !== doctorId))
-  }
-
-  const handleSubmit = () => {
+  const handleSubmit = async() => {
     // Here you would handle the submission of the new case
-    console.log({
+    const newCaseData = {
+       
       title,
       description,
-      caseType,
-      status,
-      patient: selectedPatient,
-      doctors: selectedDoctors,
+      type: caseType as CaseType,        
+      status: status as CaseStatus,       
+      patient: selectedPatient
+        ? {
+            id: selectedPatient.id,
+            name: selectedPatient.patientName,
+          }
+        : undefined,
+      doctors: Array.isArray(doctors) ? doctors.map((doctor) => ({
+        id: doctor.id,
+        name: doctor.name, 
+        avatar: doctor.avatar || "/placeholder.svg",
+        specialty: doctor.specialty,
+      })) : [],
       tags,
-    })
-
-    // Reset form and close dialog
-    resetForm()
-    onOpenChange(false)
+    }
+    
+    if (onCaseCreated) {
+      onCaseCreated(newCaseData)
+    }
   }
-
   const resetForm = () => {
     setTitle("")
     setDescription("")
     setCaseType("")
     setStatus("Open")
     setSelectedPatient(null)
-    setSelectedDoctors([])
     setTags([])
     setCurrentTag("")
     setPatientSearch("")
-    setDoctorSearch("")
+    setDoctors([])
   }
 
   return (
@@ -359,92 +316,6 @@ export function NewCaseDialog({ open, onOpenChange, preselectedPatient }: NewCas
                 </div>
               )}
             </div>
-
-            <div className="grid gap-3">
-              <Label>Collaborating Doctors</Label>
-              <div className="border rounded-md">
-                {selectedDoctors.length > 0 && (
-                  <div className="p-3 border-b">
-                    <div className="flex flex-wrap gap-2">
-                      {selectedDoctors.map((doctor) => (
-                        <Badge key={doctor.id} variant="secondary" className="flex items-center gap-1 pl-1 pr-1 py-1">
-                          <Avatar className="h-5 w-5 mr-1">
-                            <AvatarImage src={doctor.avatar || "/placeholder.svg"} alt={doctor.name} />
-                            <AvatarFallback>
-                              {doctor.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-xs">{doctor.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-4 w-4 p-0 ml-1"
-                            onClick={() => handleRemoveDoctor(doctor.id)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="p-3 border-b">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Search doctors by name or specialty..."
-                      className="pl-8"
-                      value={doctorSearch}
-                      onChange={(e) => setDoctorSearch(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <ScrollArea className="h-48">
-                  <div className="p-1">
-                    {filteredDoctors.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-4 text-center">
-                        <p className="text-sm text-gray-500">No doctors found</p>
-                      </div>
-                    ) : (
-                      filteredDoctors.map((doctor) => (
-                        <div
-                          key={doctor.id}
-                          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer"
-                          onClick={() => handleAddDoctor(doctor)}
-                        >
-                          <div className="relative">
-                            <Avatar>
-                              <AvatarImage src={doctor.avatar || "/placeholder.svg"} alt={doctor.name} />
-                              <AvatarFallback>
-                                {doctor.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
-                            {doctor.isOnline && (
-                              <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-1 ring-white" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <span className="font-medium">{doctor.name}</span>
-                            <p className="text-xs text-gray-500">{doctor.specialty}</p>
-                          </div>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-
             <div className="grid gap-3">
               <Label htmlFor="tags">Tags</Label>
               <div className="flex flex-wrap gap-2 mb-2">
