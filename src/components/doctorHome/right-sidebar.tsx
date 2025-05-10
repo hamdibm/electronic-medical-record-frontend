@@ -1,6 +1,5 @@
 "use client"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Search, Filter } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -9,48 +8,89 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { RelatedCases } from "@/components/doctorHome/related-cases"
 
-type Doctor = {
-  id: string
-  name: string
-  specialty: string
-  avatar: string
-  isOnline: boolean
+import { Doctor, getDoctorsByCaseId, getDoctorsByRecordId } from "@/assets/data/doctors"
+
+
+interface RightSidebarProps {
+  recordId: string,
+  doctorId: string,
+  onLineDoctors:string[]
 }
+// const doctors: Doctor[] = [
+//   {
+//     id: "1",
+//     name: "Dr. Sarah Chen",
+//     specialty: "Pulmonologist",
+//     avatar: "/placeholder.svg?height=40&width=40",
+//     isOnline: true,
+//   },
+//   {
+//     id: "2",
+//     name: "Dr. Michael Roberts",
+//     specialty: "Cardiologist",
+//     avatar: "/placeholder.svg?height=40&width=40",
+//     isOnline: true,
+//   },
+//   {
+//     id: "3",
+//     name: "Dr. Emily Rodriguez",
+//     specialty: "Internal Medicine",
+//     avatar: "/placeholder.svg?height=40&width=40",
+//     isOnline: true,
+//   },
+//   {
+//     id: "4",
+//     name: "Dr. James Wilson",
+//     specialty: "Cardiologist",
+//     avatar: "/placeholder.svg?height=40&width=40",
+//     isOnline: false,
+//   },
+// ]
 
-const doctors: Doctor[] = [
-  {
-    id: "1",
-    name: "Dr. Sarah Chen",
-    specialty: "Pulmonologist",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "2",
-    name: "Dr. Michael Roberts",
-    specialty: "Cardiologist",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "3",
-    name: "Dr. Emily Rodriguez",
-    specialty: "Internal Medicine",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: true,
-  },
-  {
-    id: "4",
-    name: "Dr. James Wilson",
-    specialty: "Cardiologist",
-    avatar: "/placeholder.svg?height=40&width=40",
-    isOnline: false,
-  },
-]
-
-export function RightSidebar() {
+export function RightSidebar({recordId,doctorId,onLineDoctors}: RightSidebarProps) {
+  console.log("Record ID in RightSidebar:", recordId)
   const [searchQuery, setSearchQuery] = useState("")
-
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const isRecordId=recordId.startsWith("TN");
+  const isCaseId=!isRecordId;
+  useEffect(() => {
+    if(isRecordId){
+    const fetchDoctors = async () => {
+      try {
+        const fetchedDoctors = await getDoctorsByRecordId(recordId).then((doctors) => {
+          return doctors.map((doctor) => ({
+            ...doctor,
+            isOnline: onLineDoctors.includes(doctor.id),
+          }))
+        })
+        console.log("Fetched doctors for side bar:", fetchedDoctors)
+        setDoctors(fetchedDoctors)
+      } catch (error) {
+        console.error("Error fetching doctors:", error)
+      }
+    }
+    fetchDoctors()}
+  }, [recordId, isRecordId, onLineDoctors])
+  useEffect(() => {
+    if(isCaseId){
+      const fetchDoctors = async () => {
+        try {
+          const fetchedDoctors = await getDoctorsByCaseId(recordId).then((doctors) => {
+            return doctors.map((doctor) => ({
+              ...doctor,
+              isOnline: onLineDoctors.includes(doctor.id),
+            }))
+          })
+          console.log("Fetched doctors for side bar:", fetchedDoctors)
+          setDoctors(fetchedDoctors)
+        } catch (error) {
+          console.error("Error fetching doctors:", error)
+        }
+      }
+      fetchDoctors()
+    }
+  }, [recordId, isCaseId, onLineDoctors])
+  console.log("Doctors in RightSidebar:", doctors)
   const filteredDoctors = doctors.filter(
     (doctor) =>
       doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -106,6 +146,7 @@ export function RightSidebar() {
                           .split(" ")
                           .map((n) => n[0])
                           .join("")}
+                        
                       </AvatarFallback>
                     </Avatar>
                     {doctor.isOnline && (
@@ -113,7 +154,7 @@ export function RightSidebar() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{doctor.name}</p>
+                    <p className="text-sm font-medium truncate">{doctor.id===doctorId? doctor.name+" (Me)":doctor.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{doctor.specialty}</p>
                   </div>
                 </div>

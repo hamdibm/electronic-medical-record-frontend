@@ -54,7 +54,6 @@ export function CompletePatientInfoDialog({
 
   useEffect(() => {
     if (open && recordId) {
-      // Fetch the specific record directly instead of searching through records
       findRecordByID(recordId)
         .then((foundPatient) => {
           if (foundPatient) {
@@ -128,9 +127,8 @@ export function CompletePatientInfoDialog({
         conditions,
       }
 
-      // Prepare the collab object as a JSON string for the blockchain
       const basicInfoUpdate = JSON.stringify({
-        basicInfo: updatedBasicInfo,
+        ...updatedBasicInfo,
       })
 
       await updateRecord(

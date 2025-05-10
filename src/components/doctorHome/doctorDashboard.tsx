@@ -1,13 +1,13 @@
 "use client"
+import { newSocket, SOCKET_SERVER_URL, } from "@/lib/socket";
 
 import type React from "react"
-import { io ,Socket} from "socket.io-client"
 import { useState, useEffect } from "react"
 import {
   Search,
   FileText,
   Clock,
-  MessageSquare,
+  
   Settings,
   User,
   Folder,
@@ -34,17 +34,16 @@ import { getDecodedToken } from "@/lib/jwtUtils"
 import { getCasesByDoctor } from "@/assets/data/cases"
 import { Case, CaseStatus } from "@/types"
 import {  getDoctorById } from "@/assets/data/doctors"
+import { Socket } from "socket.io-client";
 const token=getDecodedToken();
 const doctorId=token?.userId;
 if(!doctorId) {
   throw new Error("Doctor ID not found in token")
 }
 const doctor=await getDoctorById(doctorId);
-const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL || 'http://localhost:3970';
-
 export default function CollaborationCase() {
   const [cases, setCases] = useState<Case[]>([])
-  
+  const [caseCount, setCaseCount] = useState<number>(0)
   const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false)
   const [newComment, setNewComment] = useState("")
   const [activeView, setActiveView] = useState<
@@ -56,16 +55,30 @@ export default function CollaborationCase() {
   const [activeCase, setActiveCase] = useState<(typeof cases)[0] | null>(null)
   const [quickFilter, setQuickFilter] = useState<string | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
-  const [isAttachingFiles, setIsAttachingFiles] = useState(false)
   const [currentRoom, setCurrentRoom] = useState<string>('');
   const [socket, setSocket] = useState<Socket | null>(null)
+ const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const handleCaseCountChange = (count: number) => {
+    setCaseCount(count)
+  }
+  useEffect(() => {
+    if (!socket) {
+      const newSocketInstance = newSocket.connect();
+      setSocket(newSocketInstance);
   
-    useEffect(() => {const newSocket : Socket=io(SOCKET_SERVER_URL);
-    setSocket(newSocket);
-    return () => {
-      newSocket.disconnect();
-    };
-  }, []);
+      console.log("Emitting register_user with doctorId:", doctorId);
+  
+      // Emit register_user event
+      newSocketInstance.emit("register_user", doctorId);
+  
+      
+  
+      return () => {
+        newSocketInstance.disconnect();
+      };
+    }
+  }, [socket]);
+ 
   useEffect(() => {
     if (!currentRoom) return;
 
@@ -84,12 +97,17 @@ export default function CollaborationCase() {
     // Join the room
     if (socket) {
       socket.emit('join_room', currentRoom);
+      socket.on("update_online_users", (users: string[]) => {
+        console.log("Received online users:", users); 
+        setOnlineUsers(users);
+      });
     }
 
     // Cleanup: leave room when changing rooms
     return () => {
       if (socket) {
         socket.emit('leave_room', currentRoom);
+        socket.off("update_online_users");
       }
     };
   }, [currentRoom, socket]);
@@ -111,9 +129,14 @@ export default function CollaborationCase() {
     }
   }, [])
   
+  useEffect(() => {
+    const isOnline = (userId: string) => onlineUsers.includes(userId);
 
+  // Example usage
+  console.log(`Is user ${doctorId} online?`, isOnline(doctorId as string));
 
-
+  }
+  , [onlineUsers]);
 
   
   interface Comment {
@@ -183,7 +206,7 @@ export default function CollaborationCase() {
       replies: [],
     }
     if (socket) {
-      socket.emit("new_comment", {roomId:selectedCaseId,comment:newCommentObj}); //###### check room's name and arguments needed
+      socket.emit("new_comment", {roomId:selectedCaseId,comment:newCommentObj}); 
     }
 
     setComments((prevComments) => [...prevComments, newCommentObj]);
@@ -215,15 +238,7 @@ export default function CollaborationCase() {
     )
   }
 
-  const handleAttachFiles = () => {
-    setIsAttachingFiles(true)
-    // Simulate file selection dialog
-    setTimeout(() => {
-      setIsAttachingFiles(false)
-      toast.success( "Your files have been attached to the comment.",
-      )
-    }, 1500)
-  }
+  
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -270,13 +285,18 @@ export default function CollaborationCase() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer">
-                  <AvatarImage src="/placeholder.svg?height=40&width=40" alt="Dr. Sarah Johnson" />
+                  <AvatarImage
+                    src="/placeholder.svg?height=40&width=40"
+                    alt="Dr. Sarah Johnson"
+                  />
                   <AvatarFallback>SJ</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSettingsClick}>Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSettingsClick}>
+                  Settings
+                </DropdownMenuItem>
                 <DropdownMenuItem>Help</DropdownMenuItem>
                 <DropdownMenuItem>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
@@ -290,11 +310,15 @@ export default function CollaborationCase() {
           <div className="w-56 border-r bg-gray-50 flex flex-col">
             <nav className="flex-1 p-3 space-y-1">
               <div
-                className={`flex items-center justify-between rounded-md px-3 py-2 ${activeView === "my-cases" ? "bg-indigo-100 text-indigo-900" : "hover:bg-gray-100 cursor-pointer"}`}
+                className={`flex items-center justify-between rounded-md px-3 py-2 ${
+                  activeView === "my-cases"
+                    ? "bg-indigo-100 text-indigo-900"
+                    : "hover:bg-gray-100 cursor-pointer"
+                }`}
                 onClick={() => {
-                  setActiveView("my-cases")
-                  setSelectedPatientId(null)
-                  setSelectedCaseId(null)
+                  setActiveView("my-cases");
+                  setSelectedPatientId(null);
+                  setSelectedCaseId(null);
                 }}
               >
                 <div className="flex items-center gap-2">
@@ -302,20 +326,21 @@ export default function CollaborationCase() {
                   <span className="text-sm font-medium">My Cases</span>
                 </div>
                 <Badge variant="outline" className="bg-white">
-                  5
+                  {cases.length}
                 </Badge>
               </div>
 
               <div
                 className={`flex items-center justify-between rounded-md px-3 py-2 ${
-                  activeView === "patient-records" || activeView === "patient-detail"
+                  activeView === "patient-records" ||
+                  activeView === "patient-detail"
                     ? "bg-indigo-100 text-indigo-900"
                     : "hover:bg-gray-100 cursor-pointer"
                 }`}
                 onClick={() => {
-                  setActiveView("patient-records")
-                  setSelectedPatientId(null)
-                  setSelectedCaseId(null)
+                  setActiveView("patient-records");
+                  setSelectedPatientId(null);
+                  setSelectedCaseId(null);
                 }}
               >
                 <div className="flex items-center gap-2">
@@ -326,7 +351,9 @@ export default function CollaborationCase() {
 
               <div
                 className={`flex items-center justify-between rounded-md px-3 py-2 ${
-                  activeView === "settings" ? "bg-indigo-100 text-indigo-900" : "hover:bg-gray-100 cursor-pointer"
+                  activeView === "settings"
+                    ? "bg-indigo-100 text-indigo-900"
+                    : "hover:bg-gray-100 cursor-pointer"
                 }`}
                 onClick={handleSettingsClick}
               >
@@ -338,11 +365,15 @@ export default function CollaborationCase() {
             </nav>
 
             <div className="p-3 border-t">
-              <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">QUICK FILTERS</h3>
+              <h3 className="text-xs font-semibold uppercase text-gray-500 mb-2">
+                QUICK FILTERS
+              </h3>
               <div className="space-y-1">
                 <div
                   className={`flex items-center justify-between px-3 py-1 text-sm ${
-                    quickFilter === "All Cases" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100"
+                    quickFilter === "All Cases"
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "hover:bg-gray-100"
                   } rounded cursor-pointer`}
                   onClick={() => handleQuickFilterSelect("All Cases")}
                 >
@@ -351,7 +382,9 @@ export default function CollaborationCase() {
                 </div>
                 <div
                   className={`flex items-center justify-between px-3 py-1 text-sm ${
-                    quickFilter === "Pending Review" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100"
+                    quickFilter === "Pending Review"
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "hover:bg-gray-100"
                   } rounded cursor-pointer`}
                   onClick={() => handleQuickFilterSelect("Pending Review")}
                 >
@@ -360,7 +393,9 @@ export default function CollaborationCase() {
                 </div>
                 <div
                   className={`flex items-center justify-between px-3 py-1 text-sm ${
-                    quickFilter === "Recently Updated" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100"
+                    quickFilter === "Recently Updated"
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "hover:bg-gray-100"
                   } rounded cursor-pointer`}
                   onClick={() => handleQuickFilterSelect("Recently Updated")}
                 >
@@ -369,7 +404,9 @@ export default function CollaborationCase() {
                 </div>
                 <div
                   className={`flex items-center justify-between px-3 py-1 text-sm ${
-                    quickFilter === "Closed Cases" ? "bg-indigo-50 text-indigo-700" : "hover:bg-gray-100"
+                    quickFilter === "Closed Cases"
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "hover:bg-gray-100"
                   } rounded cursor-pointer`}
                   onClick={() => handleQuickFilterSelect("Closed Cases")}
                 >
@@ -386,9 +423,15 @@ export default function CollaborationCase() {
               <div className="mx-auto max-w-4xl p-6">
                 {/* Add back button at the top */}
                 <div className="flex items-center gap-3 mb-6">
-                  <Button variant="ghost" size="sm" className="gap-1" onClick={handleBackFromCase}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1"
+                    onClick={handleBackFromCase}
+                  >
                     <ArrowLeft className="h-4 w-4" />
-                    Back to {selectedPatientId ? "Patient Record" : "Patient Records"}
+                    Back to{" "}
+                    {selectedPatientId ? "Patient Record" : "Patient Records"}
                   </Button>
                 </div>
 
@@ -397,7 +440,11 @@ export default function CollaborationCase() {
                   <div className="flex items-center gap-2 mb-2 text-sm text-gray-500">
                     <span>Case ID: #{activeCase.id}</span>
                     <Badge
-                      className={activeCase.status === "Open" ? "bg-indigo-600 text-white" : "bg-gray-600 text-white"}
+                      className={
+                        activeCase.status === "Open"
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-600 text-white"
+                      }
                     >
                       {activeCase.status}
                     </Badge>
@@ -408,17 +455,22 @@ export default function CollaborationCase() {
                   <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                     <div className="flex items-center gap-1">
                       <User className="h-3.5 w-3.5" />
-                      <span>{activeCase.participants.length} Participating Doctors</span>
+                      <span>
+                        {activeCase.participants.length} Participating Doctors
+                      </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
                       <span>
                         Created{" "}
-                        {new Date(activeCase.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                        {new Date(activeCase.createdAt).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          }
+                        )}
                       </span>
                     </div>
                   </div>
@@ -437,7 +489,11 @@ export default function CollaborationCase() {
                             <Badge
                               key={index}
                               variant="outline"
-                              className={tag === "Urgent" ? "bg-amber-100 text-amber-700" : "bg-gray-100"}
+                              className={
+                                tag === "Urgent"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-gray-100"
+                              }
                             >
                               #{tag}
                             </Badge>
@@ -456,20 +512,36 @@ export default function CollaborationCase() {
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span className="text-sm">Days Active</span>
-                            <span className="font-medium">{}</span>
+                            <span className="font-medium">{activeCase.status === "Open" && Math.floor((Date.now() - new Date(activeCase.createdAt).getTime()) / (1000 * 60 * 60 * 24))}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-sm">Participating Doctors</span>
-                            <span className="font-medium">{activeCase.participants.length}</span>
+                            <span className="text-sm">
+                              Participating Doctors
+                            </span>
+                            <span className="font-medium">
+                              {activeCase.participants.length}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-sm">Comments</span>
-                            <span className="font-medium">{activeCase.commentCount}</span>
+                            <span className="font-medium">
+                              {comments.reduce((total, comment) => {
+                                const countReplies = (
+                                  replies: Comment[]=[]
+                                ): number => {
+                                  return replies.reduce(
+                                    (count, reply) =>
+                                      count + 1 + countReplies(reply.replies||[]),
+                                    0
+                                  );
+                                };
+                                return (
+                                  total + 1 + countReplies(comment.replies || [])
+                                );
+                              }, 0)}
+                            </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm">Attachments</span>
-                            <span className="font-medium">{activeCase.attachmentCount}</span>
-                          </div>
+                          
                         </div>
                       </CardContent>
                     </Card>
@@ -482,7 +554,10 @@ export default function CollaborationCase() {
 
                 {/* Comment Thread Component */}
                 <div className="mb-6">
-                  <CommentThread initialComments={comments} />
+                  <CommentThread
+                    initialComments={comments}
+                    roomId={activeCase.id}
+                  />
                 </div>
 
                 <div className="rounded-lg border bg-card p-4">
@@ -492,10 +567,7 @@ export default function CollaborationCase() {
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                   />
-                  <div className="mt-4 flex items-center justify-between">
-                    <Button variant="outline" size="sm" onClick={handleAttachFiles} disabled={isAttachingFiles}>
-                      {isAttachingFiles ? "Attaching..." : "Attach files"}
-                    </Button>
+                    <div className="mt-4 flex justify-end">
                     <Button
                       className="bg-indigo-600 hover:bg-indigo-700 gap-1"
                       disabled={!newComment.trim()}
@@ -504,22 +576,17 @@ export default function CollaborationCase() {
                       <Send className="h-4 w-4" />
                       Post Comment
                     </Button>
-                  </div>
+                    </div>
                 </div>
 
                 <div className="mt-6 flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    className="gap-1"
-                    onClick={() => {
-                      document.querySelector("textarea")?.focus()
-                    }}
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    Add Comment
-                  </Button>
+                  
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleCloseCase} disabled={activeCase.status === "Closed"}>
+                    <Button
+                      variant="outline"
+                      onClick={handleCloseCase}
+                      disabled={activeCase.status === "Closed"}
+                    >
                       Close Case
                     </Button>
                     <Button variant="outline" onClick={handleShareCase}>
@@ -531,7 +598,10 @@ export default function CollaborationCase() {
             ) : activeView === "my-cases" ? (
               <CaseExplorer onCaseSelect={handleCaseSelect} />
             ) : activeView === "patient-records" ? (
-              <PatientRecords onPatientSelect={handlePatientSelect} />
+              <PatientRecords
+                onPatientSelect={handlePatientSelect}
+                numberOfCases={caseCount}
+              />
             ) : activeView === "settings" ? (
               <div className="p-6">
                 <h1 className="text-2xl font-bold mb-6">Settings</h1>
@@ -544,11 +614,17 @@ export default function CollaborationCase() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-sm font-medium">Name</label>
-                          <Input defaultValue="Dr. Sarah Johnson" className="mt-1" />
+                          <Input
+                            defaultValue="Dr. Sarah Johnson"
+                            className="mt-1"
+                          />
                         </div>
                         <div>
                           <label className="text-sm font-medium">Email</label>
-                          <Input defaultValue="sarah.johnson@medcollab.com" className="mt-1" />
+                          <Input
+                            defaultValue="sarah.johnson@medcollab.com"
+                            className="mt-1"
+                          />
                         </div>
                       </div>
                       <div>
@@ -556,22 +632,39 @@ export default function CollaborationCase() {
                         <Input defaultValue="Cardiology" className="mt-1" />
                       </div>
                       <div>
-                        <label className="text-sm font-medium">Notification Preferences</label>
+                        <label className="text-sm font-medium">
+                          Notification Preferences
+                        </label>
                         <div className="mt-2 space-y-2">
                           <div className="flex items-center">
-                            <input type="checkbox" id="email-notif" className="mr-2" defaultChecked />
+                            <input
+                              type="checkbox"
+                              id="email-notif"
+                              className="mr-2"
+                              defaultChecked
+                            />
                             <label htmlFor="email-notif" className="text-sm">
                               Email notifications
                             </label>
                           </div>
                           <div className="flex items-center">
-                            <input type="checkbox" id="case-notif" className="mr-2" defaultChecked />
+                            <input
+                              type="checkbox"
+                              id="case-notif"
+                              className="mr-2"
+                              defaultChecked
+                            />
                             <label htmlFor="case-notif" className="text-sm">
                               Case updates
                             </label>
                           </div>
                           <div className="flex items-center">
-                            <input type="checkbox" id="mention-notif" className="mr-2" defaultChecked />
+                            <input
+                              type="checkbox"
+                              id="mention-notif"
+                              className="mr-2"
+                              defaultChecked
+                            />
                             <label htmlFor="mention-notif" className="text-sm">
                               Mentions
                             </label>
@@ -582,8 +675,9 @@ export default function CollaborationCase() {
                         <Button
                           className="bg-indigo-600 hover:bg-indigo-700"
                           onClick={() => {
-                            toast.success( "Your account settings have been updated successfully.",
-                            )
+                            toast.success(
+                              "Your account settings have been updated successfully."
+                            );
                           }}
                         >
                           Save Changes
@@ -598,12 +692,13 @@ export default function CollaborationCase() {
                 patientId={selectedPatientId!}
                 onBack={handleBackToPatientList}
                 onCaseSelect={handleCaseSelect}
+                onCaseCountChange={handleCaseCountChange}
               />
             )}
           </div>
 
           {/* Right sidebar with tabs for Doctors and Related Cases */}
-          {activeView === "case-detail" && <RightSidebar />}
+          {activeView === "case-detail" && <RightSidebar recordId={selectedPatientId || selectedCaseId|| "nothing"} doctorId={doctorId?doctorId:""} onLineDoctors={onlineUsers} />}
         </div>
       </div>
 
@@ -614,14 +709,18 @@ export default function CollaborationCase() {
         onCaseClosed={() => {
           if (activeCase) {
             // Update the case status
-            const updatedCase = { ...activeCase, status: "Closed"  as CaseStatus }
-            setActiveCase(updatedCase)
+            const updatedCase = {
+              ...activeCase,
+              status: "Closed" as CaseStatus,
+            };
+            setActiveCase(updatedCase);
 
-            toast.success( "The collaboration case has been closed successfully.",
-            )
+            toast.success(
+              "The collaboration case has been closed successfully."
+            );
           }
         }}
       />
     </div>
-  )
+  );
 }

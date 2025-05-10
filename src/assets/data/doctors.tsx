@@ -84,3 +84,40 @@ export async function getDoctorById(doctorId: string): Promise<Doctor | null> {
         return null;
     }
 }
+
+// export async function getDoctorsByCaseId(caseId: string): Promise<Doctor[]> {
+//     try {
+//         const backendPort = import.meta.env.BACKEND_PORT || '3970';
+//         const response = await axios.get(
+//             `http://localhost:${backendPort}/api/doctor/getDoctorsByCaseId/${caseId}`
+//         );
+//         const doctors = response.data as Doctor[];
+//         return doctors;
+//     } catch (error) {
+//         console.error("Error fetching doctors by case ID:", error);
+//         return [];
+//     }
+// }
+export async function getDoctorsByCaseId(caseId: string): Promise<Doctor[] > {
+    try {
+        const backendPort = import.meta.env.BACKEND_PORT || '3970';
+        const response = await axios.get(
+            `http://localhost:${backendPort}/api/doctor/getDoctorsByCaseId/${caseId}`
+        );
+        const doctorsData = response.data.data; 
+        if (!doctorsData) {
+            throw new Error("No doctors found for the given case ID");
+        }
+        const doctors: Doctor[] = doctorsData.map((doctorData:Doctor) => ({
+            id: doctorData.id,
+            name: doctorData.name,
+            specialty: doctorData.specialty,
+            avatar: doctorData.avatar,
+            isOnline: false,
+        }));
+        return doctors;
+    } catch (error) {
+        console.error("Error fetching doctor by case ID:", error);
+        throw error;
+    }
+}

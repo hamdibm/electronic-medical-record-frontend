@@ -1,5 +1,5 @@
 "use client"
-
+import { newSocket } from "@/lib/socket"
 import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,7 @@ import { ThumbsUp, MessageSquare, ChevronDown, ChevronUp, Send } from "lucide-re
 import { toast } from "sonner"
 import { getDecodedToken } from "@/lib/jwtUtils"
 import { getDoctorById } from "@/assets/data/doctors"
+
 const token=getDecodedToken();
 const doctorId=token?.userId;
 if(!doctorId) {
@@ -37,16 +38,21 @@ interface CommentProps {
 }
 
 interface CommentThreadProps {
-  initialComments?: Comment[]
+  initialComments?: Comment[],
+  roomId:string
 }
 
-export function CommentThread({ initialComments = [] }: CommentThreadProps) {
+export function CommentThread({ initialComments = [],roomId }: CommentThreadProps) {
+  useEffect(() => {
+        newSocket.connect();
+      return () => {
+        newSocket.disconnect();
+      };
+    }, []);
   useEffect(() => {
     setComments(initialComments); // Update comments when the prop changes
   }, [initialComments]);
   const [comments, setComments] = useState<Comment[]>(initialComments)
-  // const [newComment, setNewComment] = useState("")
- 
   const toggleLike = (commentId: string, commentList: Comment[] = comments): Comment[] => {
     return commentList.map((comment ) => {
       if (comment.id === commentId) {
@@ -77,59 +83,43 @@ export function CommentThread({ initialComments = [] }: CommentThreadProps) {
   const addReply = (commentId: string, content: string, commentList: Comment[] = comments): Comment[] => {
     return commentList.map((comment) => {
       if (comment.id === commentId) {
-        const newReply: Comment = {
-          id: `reply-${Date.now()}`,
+        const replyObj: Comment = {
+          id: `reply-${Math.random().toString(36)}`, 
           author: {
-            name: doctor?.name || "unkown doctor", // Current user
-            avatar: doctor?.avatar||"/placeholder.svg?height=40&width=40",
-            specialty: doctor?.specialty || "unkown specialty",
+            name: doctor?.name || "unknown doctor", // Current user
+            avatar: doctor?.avatar || "/placeholder.svg?height=40&width=40",
+            specialty: doctor?.specialty || "unknown specialty",
           },
           content,
-          timestamp: "Just now",
+          timestamp: new Date().toLocaleString(),
           likes: 0,
           userLiked: false,
           replies: [],
-        }
+        };
+  
+        // Emit the reply to the server
+        newSocket.emit("new_reply", { roomId, parentId: commentId, reply: replyObj });
+  
+        // Add the reply to the parent's replies array
         return {
           ...comment,
-          replies: [...comment.replies, newReply],
-        }
+          replies: [...comment.replies, replyObj],
+        };
       }
-
+  
+      // Recursively update nested replies
       if (comment.replies.length > 0) {
         return {
           ...comment,
           replies: addReply(commentId, content, comment.replies),
-        }
+        };
       }
-
-      return comment
-    })
-  }
   
-  // const handleAddComment = () => {
-  //   if (!newComment.trim()) return
-
-  //   const newCommentObj: Comment = {
-  //     id: `comment-${Date.now()}`,
-  //     author: {
-  //       name: doctor?.name || "unkown doctor", 
-  //       avatar: doctor?.avatar||"/placeholder.svg?height=40&width=40",
-  //       specialty: doctor?.specialty || "unkown specialty",
-  //     },
-  //     content: newComment,
-  //     timestamp: "Just now",
-  //     likes: 0,
-  //     userLiked: false,
-  //     replies: [],
-  //   }
-
-  //   setComments([...comments, newCommentObj])
-  //   setNewComment("")
-
-  //   toast("Your comment has been added to the discussion.")
-  // }
-
+      return comment; // Return the comment unchanged if it's not the parent
+    });
+  };
+  
+ 
   return (
     <div className="space-y-6">
       {comments.map((comment) => (
@@ -148,24 +138,51 @@ export function CommentThread({ initialComments = [] }: CommentThreadProps) {
 }
 
 function CommentItem({ comment, level = 0, maxLevel = 4, onLike, onReply }: CommentProps) {
-  const [isReplying, setIsReplying] = useState(false)
-  const [replyContent, setReplyContent] = useState("")
-  const [showReplies, setShowReplies] = useState(true)
-
-  const hasReplies = comment.replies && comment.replies.length > 0
-  const isNested = level > 0
-
-  const handleReplySubmit = () => {
-    if (!replyContent.trim()) return
-
-    onReply(comment.id, replyContent)
-    setReplyContent("")
-    setIsReplying(false)
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const [showReplies, setShowReplies] = useState(true);
+  if (!comment || !comment.author) {
+    toast.error("add a new comment instead for better readability.");
+    return null; 
   }
+  const hasReplies = comment.replies && comment.replies.length > 0;
+  const isNested = level > 0;
+  if (hasReplies) {
+    console.log("Comment ID:", comment.id);
+    console.log("Reply IDs:", comment.replies.map((reply) => reply.id));
+  }
+  const handleReplySubmit = () => {
+    if (!replyContent.trim()) return;
+
+    onReply(comment.id, replyContent);
+    setReplyContent("");
+    setIsReplying(false);
+  };
 
   return (
     <div className={`${isNested ? "mt-4" : ""}`}>
-      <div className={`flex gap-4 ${isNested ? "pl-6 border-l-2 border-gray-100" : ""}`}>
+      <div
+        className={`flex gap-4 relative`}
+        style={{
+          paddingLeft: `${level * 24}px`, 
+        }}
+      >
+       
+        {isNested && (
+          <>
+           
+            <div 
+              className="absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b from-indigo-400 via-purple-400 to-indigo-400" 
+              style={{ 
+                left: `${(level - 1) * 24 + 12}px`,
+                opacity: 0.7,
+              }} 
+            />
+            
+            
+          </>
+        )}
+        
         <Avatar>
           <AvatarImage src={comment.author.avatar || "/placeholder.svg"} alt={comment.author.name} />
           <AvatarFallback>
@@ -184,7 +201,9 @@ function CommentItem({ comment, level = 0, maxLevel = 4, onLike, onReply }: Comm
           <p className="mt-1 text-sm">{comment.content}</p>
           <div className="mt-2 flex items-center gap-4 text-sm">
             <button
-              className={`flex items-center gap-1 ${comment.userLiked ? "text-indigo-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex items-center gap-1 ${
+                comment.userLiked ? "text-indigo-600" : "text-gray-500 hover:text-gray-700"
+              }`}
               onClick={() => onLike(comment.id)}
             >
               <ThumbsUp className="h-3.5 w-3.5" />
@@ -197,7 +216,7 @@ function CommentItem({ comment, level = 0, maxLevel = 4, onLike, onReply }: Comm
               <MessageSquare className="h-3.5 w-3.5" />
               <span>Reply</span>
             </button>
-
+  
             {hasReplies && (
               <button
                 className="flex items-center gap-1 text-gray-500 hover:text-gray-700"
@@ -217,7 +236,7 @@ function CommentItem({ comment, level = 0, maxLevel = 4, onLike, onReply }: Comm
               </button>
             )}
           </div>
-
+  
           {isReplying && (
             <div className="mt-3">
               <Textarea
@@ -231,8 +250,8 @@ function CommentItem({ comment, level = 0, maxLevel = 4, onLike, onReply }: Comm
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setIsReplying(false)
-                    setReplyContent("")
+                    setIsReplying(false);
+                    setReplyContent("");
                   }}
                 >
                   Cancel
@@ -251,7 +270,7 @@ function CommentItem({ comment, level = 0, maxLevel = 4, onLike, onReply }: Comm
           )}
         </div>
       </div>
-
+  
       {hasReplies && showReplies && level < maxLevel && (
         <div className="space-y-0">
           {comment.replies.map((reply) => (
@@ -267,5 +286,4 @@ function CommentItem({ comment, level = 0, maxLevel = 4, onLike, onReply }: Comm
         </div>
       )}
     </div>
-  )
-}
+  );}

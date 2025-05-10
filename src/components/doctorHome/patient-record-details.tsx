@@ -63,7 +63,7 @@ import { Case, ClinicalNote, Document, Prescription } from "@/types";
 import { getNotes } from "@/assets/data/clinicalNotes";
 import { getFiles } from "@/assets/data/files";
 import { getCasesByRecordId } from "@/assets/data/cases";
-
+import { CompletePatientInfoDialog } from "./complete-patient-info-dialog";
 const token = getDecodedToken();
 const doctorId = token?.userId;
 
@@ -85,6 +85,7 @@ interface PatientRecordDetailProps {
   patientId: string;
   onBack: () => void;
   onCaseSelect?: (caseId: string) => void;
+  onCaseCountChange?: (count: number,patientId :string) => void;
 }
 
 
@@ -129,6 +130,7 @@ export function PatientRecordDetail({
   patientId,
   onBack,
   onCaseSelect,
+  onCaseCountChange,
 }: PatientRecordDetailProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isAddNoteDialogOpen, setIsAddNoteDialogOpen] = useState(false);
@@ -140,6 +142,7 @@ export function PatientRecordDetail({
     null
   );
 const[cases,setCases]=useState<Case[]>([]);
+const [isCompleteInfoDialogOpen, setIsCompleteInfoDialogOpen] = useState(false);
 const [isLoadingCases, setIsLoadingCases] = useState(true); 
 
   useEffect(() => {
@@ -149,12 +152,15 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
         const fetchedCases = await getCasesByRecordId(patientId);
         setCases(fetchedCases);
         setIsLoadingCases(false);
+        if (onCaseCountChange) {
+          onCaseCountChange(fetchedCases.length, patientId);
+        }
       }
     };
 
     fetchCases();
-  }, [patientId]);
-
+  }, [patientId, onCaseCountChange]);
+ 
   // Vérifiez si des cas existent
   const hasCases = cases.length > 0;
   const [PrescriptionData, setPrescriptionData] = useState<Prescription>({
@@ -343,6 +349,8 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
       const typeConvertedPrescription = JSON.stringify({
         ...newPrescription,
       });
+      
+
 
       // Update the record in the blockchain
       await updateRecord(
@@ -873,14 +881,13 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
                     <Button
                       variant="outline"
                       className="w-full justify-start gap-2"
-                      onClick={() => setIsNewCaseDialogOpen(true)}
+                      onClick={() => setIsCompleteInfoDialogOpen(true)} // Open the dialog
                     >
-                      <MessageSquare className="h-4 w-4" />
-                      Start Collaboration
+                      <Shield className="h-4 w-4" />
+                      Complete Basic Info
                     </Button>
                   </CardContent>
                 </Card>
-
                 {/* Medications by Specialty */}
                 <Card className="md:col-span-3">
                   <CardHeader>
@@ -894,24 +901,24 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
                     <div className="space-y-6">
                       {Object.entries(prescriptionsBySpecialty).map(
                         ([specialty, medications]) => (
-                        <div key={specialty}>
-                          <div className="flex items-center gap-2 mb-3">
-                            {getSpecialtyIcon(specialty)}
+                          <div key={specialty}>
+                            <div className="flex items-center gap-2 mb-3">
+                              {getSpecialtyIcon(specialty)}
                               <h3 className="text-base font-medium">
                                 {specialty}
                               </h3>
-                          </div>
-                          <div className="space-y-3 pl-6">
-                            {medications.map((medication) => (
+                            </div>
+                            <div className="space-y-3 pl-6">
+                              {medications.map((medication) => (
                                 <div
                                   key={medication.id}
                                   className="flex items-start gap-3 p-3 border rounded-md"
                                 >
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100">
-                                  <Pill className="h-4 w-4 text-indigo-600" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100">
+                                    <Pill className="h-4 w-4 text-indigo-600" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
                                       <h4 className="font-medium">
                                         {medication.MedicationName}
                                       </h4>
@@ -919,43 +926,43 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
                                         variant="outline"
                                         className="bg-green-50 text-green-700 border-green-200"
                                       >
-                                      {medication.status}
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                                        {medication.status}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
                                       <span>Dosage: {medication.Dosage}</span>
-                                    <span>•</span>
+                                      <span>•</span>
                                       <span>
                                         Frequency: {medication.Frequency}
                                       </span>
-                                  </div>
-                                  <div className="text-sm text-gray-500 mt-1">
+                                    </div>
+                                    <div className="text-sm text-gray-500 mt-1">
                                       <span>
                                         Instructions: {medication.instructions}
                                       </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-2">
-                                    <Avatar className="h-5 w-5">
-                                      <AvatarImage
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Avatar className="h-5 w-5">
+                                        <AvatarImage
                                           src={"/placeholder.svg"}
                                           alt={medication.doctorID}
-                                      />
-                                      <AvatarFallback>
+                                        />
+                                        <AvatarFallback>
                                           {medication.doctorID
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join("")}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-xs text-gray-500">
+                                            .split(" ")
+                                            .map((n) => n[0])
+                                            .join("")}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <span className="text-xs text-gray-500">
                                         Prescribed by {medication.doctorID}
-                                    </span>
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
                         )
                       )}
                       <Button
@@ -1044,7 +1051,7 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
                         )}
                       </div>
                     </div>
-{/* ################################## still not treated */}
+                    {/* ################################## still not treated */}
                     <div>
                       <h3 className="text-sm font-medium mb-2">
                         Visit History
@@ -1311,9 +1318,9 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
                               <div className="flex items-center gap-2">
                                 {note.tags && Array.isArray(note.tags)
                                   ? note.tags.map((tag, i) => (
-                                  <Badge key={i} variant="outline">
-                                    {tag}
-                                  </Badge>
+                                      <Badge key={i} variant="outline">
+                                        {tag}
+                                      </Badge>
                                     ))
                                   : null}
                               </div>
@@ -1438,20 +1445,16 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
                                   </Badge>
                                 ))}
                               </div>
-                             
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    window.open(
-                                      file.documentUrls[0],
-                                      "_blank"
-                                    )
-                                  }
-                                >
-                                  View
-                                </Button>
-                                
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  window.open(file.documentUrls[0], "_blank")
+                                }
+                              >
+                                View
+                              </Button>
                             </CardFooter>
                           </Card>
                         ))}
@@ -1474,82 +1477,91 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
               </div>
 
               <div className="space-y-3">
-          {isLoadingCases ? (
-            <div className="text-center text-gray-500">Loading cases...</div>
-          ) : hasCases ? (
-            cases.map((caseItem) => (
-              <Card key={caseItem.id}>
+                {isLoadingCases ? (
+                  <div className="text-center text-gray-500">
+                    Loading cases...
+                  </div>
+                ) : hasCases ? (
+                  cases.map((caseItem) => (
+                    <Card key={caseItem.id}>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                    <CardTitle>{caseItem.title}</CardTitle>
-                    <Badge
-                      className={`${
-                        caseItem.status === "Open"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-gray-100 text-gray-700 border-gray-200"
-                      }`}
-                    >
-                      {caseItem.status}
+                          <CardTitle>{caseItem.title}</CardTitle>
+                          <Badge
+                            className={`${
+                              caseItem.status === "Open"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-gray-100 text-gray-700 border-gray-200"
+                            }`}
+                          >
+                            {caseItem.status}
                           </Badge>
                         </div>
-                  <CardDescription>
-                    Case #{caseItem.id} • Created{" "}
-                    {new Date(caseItem.createdAt).toLocaleDateString()}
-                  </CardDescription>
+                        <CardDescription>
+                          Case #{caseItem.id} • Created{" "}
+                          {new Date(caseItem.createdAt).toLocaleDateString()}
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
-                  <p className="text-sm mb-3">{caseItem.description}</p>
+                        <p className="text-sm mb-3">{caseItem.description}</p>
                         <div className="flex flex-wrap gap-1 mb-3">
-                    {caseItem.tags.map((tag, i) => (
-                      <Badge key={i} variant="outline" className="bg-gray-100">
-                        #{tag}
-                          </Badge>
-                    ))}
+                          {caseItem.tags.map((tag, i) => (
+                            <Badge
+                              key={i}
+                              variant="outline"
+                              className="bg-gray-100"
+                            >
+                              #{tag}
+                            </Badge>
+                          ))}
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-500">
-                      {caseItem.participants.length} participating doctors
-                    </span>
+                          <span className="text-sm text-gray-500">
+                            {caseItem.participants.length} participating doctors
+                          </span>
                         </div>
                       </CardContent>
                       <CardFooter className="border-t bg-gray-50 flex justify-between">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-6 w-6">
-                      <AvatarImage
-                        src={caseItem.createdBy.avatar || "/placeholder.svg"}
-                        alt={caseItem.createdBy.name}
-                      />
-                      <AvatarFallback>
-                        {caseItem.createdBy.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
+                            <AvatarImage
+                              src={
+                                caseItem.createdBy.avatar || "/placeholder.svg"
+                              }
+                              alt={caseItem.createdBy.name}
+                            />
+                            <AvatarFallback>
+                              {caseItem.createdBy.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
+                            </AvatarFallback>
                           </Avatar>
-                    <span className="text-sm">
-                      Created by {caseItem.createdBy.name}
-                    </span>
+                          <span className="text-sm">
+                            Created by {caseItem.createdBy.name}
+                          </span>
                         </div>
                         <Button
                           className="bg-indigo-600 hover:bg-indigo-700"
-                    onClick={() =>
-                      onCaseSelect && onCaseSelect(caseItem.id)
-                    }
+                          onClick={() =>
+                            onCaseSelect && onCaseSelect(caseItem.id)
+                          }
                         >
                           View Case
                         </Button>
                       </CardFooter>
                     </Card>
-            ))
+                  ))
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <MessageSquare className="h-16 w-16 text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">
-                No collaboration cases
-              </h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-1">
+                      No collaboration cases
+                    </h3>
                     <p className="text-gray-500 mb-4">
-                      This patient doesn't have any active or past collaboration cases
+                      This patient doesn't have any active or past collaboration
+                      cases
                     </p>
                     <Button
                       onClick={() => setIsNewCaseDialogOpen(true)}
@@ -1875,11 +1887,11 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
                 </div>
               ) : (
                 <>
-              <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                  <Upload className="h-10 w-10 text-gray-400 mb-2" />
                   <p className="text-sm font-medium mb-1">
                     Drag and drop files here
                   </p>
-              <p className="text-xs text-gray-500 mb-3">or</p>
+                  <p className="text-xs text-gray-500 mb-3">or</p>
                   <input
                     type="file"
                     id="file-upload"
@@ -1894,8 +1906,8 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
                       document.getElementById("file-upload")?.click()
                     }
                   >
-                Browse Files
-              </Button>
+                    Browse Files
+                  </Button>
                 </>
               )}
             </div>
@@ -2061,6 +2073,16 @@ const [isLoadingCases, setIsLoadingCases] = useState(true);
         open={isNewCaseDialogOpen}
         onOpenChange={setIsNewCaseDialogOpen}
         preselectedPatient={record}
+      />
+      {/* Complete Basic Info Dialog */}
+      <CompletePatientInfoDialog
+        open={isCompleteInfoDialogOpen}
+        onOpenChange={setIsCompleteInfoDialogOpen}
+        recordId={patientId} // Pass the current patient ID
+        onInfoCompleted={() => {
+          // Optional: Add any logic to refresh the patient data after completing the info
+          console.log("Basic info completed!");
+        }}
       />
     </div>
   );

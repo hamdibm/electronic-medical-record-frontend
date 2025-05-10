@@ -30,9 +30,10 @@ const records = await findRecordsForSpecificDoctor(doctorId as string)
 
 interface PatientRecordsProps {
   onPatientSelect: (recordId: string) => void
+  numberOfCases?: number
 }
 
-export function PatientRecords({ onPatientSelect }: PatientRecordsProps) {
+export function PatientRecords({ onPatientSelect ,numberOfCases}: PatientRecordsProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [isAddPatientDialogOpen, setIsAddPatientDialogOpen] = useState(false)
@@ -56,6 +57,7 @@ export function PatientRecords({ onPatientSelect }: PatientRecordsProps) {
         })
       : records
   }
+  
 
   const handlePatientAdded = async (recordId: string) => {
     try {
@@ -170,7 +172,7 @@ export function PatientRecords({ onPatientSelect }: PatientRecordsProps) {
                 </div> */}
                 <div className="flex items-center gap-1 text-gray-500">
                   <FileText className="h-3.5 w-3.5" />
-                  <span>{record.collabs.length} cases</span>
+                  <span>{numberOfCases} cases</span>
                 </div>
               </div>
 
@@ -186,7 +188,13 @@ export function PatientRecords({ onPatientSelect }: PatientRecordsProps) {
                   <Clipboard className="h-3.5 w-3.5 text-gray-500 mt-0.5" />
                   <div className="flex-1">
                     <span className="text-xs text-gray-500">Medications: </span>
-                    <span className="text-xs">{record.basicInfo?.medications?.map((med) => med.name).join(", ")}</span>
+                    <span className="text-xs">
+                      {record.data
+  ?.filter((entry) => entry.type === "Prescription")
+  .filter((prescription) => prescription.MedicationName)  
+  .map((prescription) => prescription.MedicationName)
+  .join(", ")}
+                    </span>
                   </div>
                 </div>
               </div>
