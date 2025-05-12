@@ -6,6 +6,7 @@ import { useFormStore } from '../../store/formStore';
 import { profilePictureSchema } from '../../schemas/formSchema';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios'
+import{toast} from "sonner" ;
 
 type ProfilePictureInputs = z.infer<typeof profilePictureSchema>;
 
@@ -107,14 +108,14 @@ const ProfilePictureStep: React.FC = () => {
       const { data, status } = result.data;
       if (status.success) {
         console.log('Message: ', data.message);
-        alert('Form submitted successfully!');
+        toast.success("Doctor registred successfully");
       } else {
         console.log('Error Message: ', status.errorMessages);
       }
   
     } catch (backendError) {
       console.error('Backend registration failed:', backendError);
-      alert('Doctor registration failed.');
+      toast.error("Doctor registred successfully");
     }
   } catch (uploadError) {
     console.error('Cloudinary upload failed:', uploadError);

@@ -18,23 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  AlertTriangle,
-  Bell,
-  Calendar,
-  FileText,
-  Heart,
-  LinkIcon,
-  Plus,
-  TestTube,
-  User,
-  Users,
-  Activity,
-  Brain,
-  TreesIcon as Lungs,
-  X,
-  MessageSquare,
-} from "lucide-react"
+import { AlertTriangle, Bell,Calendar,FileText,Heart,LinkIcon,Plus,TestTube, User,Users,Activity,Brain,TreesIcon as Lungs,X,MessageSquare,} from "lucide-react"
 import { fetchPatientDashboardData, grantAccessToDoctor, revokeAccessFromDoctor } from "../../services/fabricApi"
 import { toast } from "sonner"
 
