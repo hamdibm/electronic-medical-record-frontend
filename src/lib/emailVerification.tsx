@@ -1,18 +1,27 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'sonner';
 
 const EmailVerification: React.FC = () => {
     const { token } = useParams<{ token: string }>();
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
 
     useEffect(() => {
         const verifyEmail = async () => {
             try {
-                await axios.get(`http://localhost:3000/api/auth/verifyEmail?token=${token}`);
-                navigate('/login'); 
+                const response = await axios.get(`http://localhost:3000/api/auth/verifyEmail?token=${token}`);
+                if (response.data.success) {
+                    toast.success(response.data.data);
+                    setTimeout(() => {
+                        navigate('/login');
+                    }, 2000);
+                } else {
+                    toast.error(response.data.errorMessages || 'Verification failed');
+                }
             } catch (error) {
                 console.error('Email verification failed:', error);
+                toast.error("Email verification failed");
             }
         };
 

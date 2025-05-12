@@ -1,6 +1,7 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios'
 import {isValidPassword} from "@/lib/validatePassword";
+import{toast} from "sonner" ;
 
 
 interface FormData {
@@ -66,16 +67,15 @@ const Register: React.FC = () => {
     }
 
     console.log('Form Data:', formData);
-     alert('Form submitted successfully!');
+    toast.success("Account created successfully!");
     axios.post("http://localhost:3000/api/auth/registerPatient", formData, {headers: {
           'Content-Type': 'application/json'}}).then(result => { const { data, status } = result.data;
 
         if(status.success) {
-          // Show success message
           console.log("Message: ", data.message) 
         } else {
-          // Show error message
           console.log("Error Message: ", status.errorMessages)
+
         }
       })
       .catch(error => console.log(error))

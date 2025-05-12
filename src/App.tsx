@@ -7,18 +7,25 @@ import RegisterPatient from './components//register/RegisterAsPatient/RegisterPa
 import Login from './modules/Login';
 import {Route,Routes} from 'react-router-dom'
 import EmailVerification from './lib/emailVerification';
-
+import { Toaster } from "sonner";
+import PatientDashboard from './components/patientHome/patientDashboard';
 function App() {
 
  
   
   return (
-    <Routes>
+    <>
+     <Routes>
       <Route path="/" element={<Login/>}/>
       <Route path="/registerDoctor" element={<RegisterAsDoc/>}/>
       <Route path="/registerPatient" element={<RegisterPatient/>}/>
       <Route path="/verify-email/:token" element={<EmailVerification />} />
+      <Route path="/patientDashboard" element={<PatientDashboard/>}/>
+      <Route path="/login" element={<Login/>}/>
     </Routes>
+    <Toaster position="bottom-right" richColors />
+    </>
+   
  
   );
 };
