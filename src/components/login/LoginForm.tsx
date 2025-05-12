@@ -8,11 +8,14 @@ import RoleSelection from "../login/RoleSelection";
 import { Button } from "../ui/button";
 import { useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import{toast} from "sonner" ;
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +29,27 @@ export default function LoginForm() {
 
       console.log("Login success:", response.data);
 
+      toast.success("Connexion réussie ! Redirection en cours...");
+      console.log("Access Token:", response.data.accessToken);
+      const token = response.data.data?.accessToken;
+      console.log("Token reçu du backend :", token);
+
+    if (token) {
+      localStorage.setItem("token", token);
+    } else {
+      console.error(" Aucun token reçu depuis le backend.");
+      toast.error("Erreur lors de la connexion. Token manquant.");
+    return;
+}
+      setTimeout(() => {
+        navigate("/patientDashboard");
+      }, 2000);
+
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.response?.data?.errorMessages || "Login failed");
+      toast.error("Échec de la connexion. Veuillez vérifier vos identifiants.");
+  
     }
   };
   return (
