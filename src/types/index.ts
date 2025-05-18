@@ -33,6 +33,15 @@ export interface FinalDecision {
     doctorId: string;
     content: string;
 }
+export interface BasicInfo {
+    insuranceProvider?: string;
+    insuranceNumber?: string;
+    allergies?: string[];
+    bloodType?: string;
+    conditions?: string[];
+    medications?: { name: string; dosage: string; frequency: string }[];
+    recentVisits?: { date: Date; reason: string; doctor: string }[];
+}
 
 export interface Record {
   id: string;
@@ -51,15 +60,6 @@ export interface Record {
   status: string;
 }
 
-export interface BasicInfo {
-    insuranceProvider?: string;
-    insuranceNumber?: string;
-    allergies?: string[];
-    bloodType?: string;
-    conditions?: string[];
-    medications?: { name: string; dosage: string; frequency: string }[];
-    recentVisits?: { date: Date; reason: string; doctor: string }[];
-}
 export type RecordEntry=ClinicalNote | Prescription | Document;
 export interface Data {
     type: 'ClinicalNote' | 'Prescription' | 'Document';

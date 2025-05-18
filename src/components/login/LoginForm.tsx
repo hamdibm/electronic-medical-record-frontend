@@ -16,34 +16,39 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const handleLogin = async (e: React.FormEvent) => {
-    
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    try {
-      const response = await axios.post("http://localhost:3970/api/auth/login", {
-        email,
-        password,
-      });
-      toast.success("Login successful");
-      console.log("Login success:", response.data);
-      const {accessToken,user} = response.data.data;
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("user", JSON.stringify(user));
-      console.log("accsss",localStorage.getItem("accessToken"));
-      if (user.role === "doctor") {
-        navigate("/doctor-dashboard") ;
-      } else if (user.role === "patient") {
-        navigate("/patient-dashboard");
-      } else {
-        navigate("/medicalRegulatory-dashboard");
-      }
+  try {
+    const response = await axios.post("http://localhost:3970/api/auth/login", {
+      email,
+      password,
+    });
+    toast.success("Login successful");
+    console.log("Login success:", response.data);
 
-    } catch (err ) {
-      console.error("Login error:", err);
-      setError("Invalid email or password");
+    const { accessToken, user } = response.data.data;
+
+    const tokenKey = `${user.role}AccessToken`; 
+    const userKey = `${user.role}User`; 
+
+    localStorage.setItem(tokenKey, accessToken);
+    localStorage.setItem(userKey, JSON.stringify(user));
+
+    console.log("Stored accessToken:", localStorage.getItem(tokenKey));
+
+    if (user.role === "doctor") {
+      navigate("/doctor-dashboard");
+    } else if (user.role === "patient") {
+      navigate("/patient-dashboard");
+    } else {
+      navigate("/medicalRegulatory-dashboard");
     }
-  };
+  } catch (err) {
+    console.error("Login error:", err);
+    setError("Invalid email or password");
+  }
+};
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-200 p-4">
       <form className="flex flex-col sm:flex-row bg-white rounded-lg shadow-lg w-full max-w-4xl overflow-hidden">

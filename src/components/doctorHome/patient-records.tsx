@@ -14,9 +14,9 @@ import { findRecordByID, findRecordsForSpecificDoctor, grantAccessForDoctor } fr
 import  AddPatientDialog  from "./add-patient-dialog"
 import { CompletePatientInfoDialog } from "./complete-patient-info-dialog"
 import { toast } from "sonner"
-import { getDecodedToken } from "@/lib/jwtUtils"
+import { getDecodedToken, UserRole } from "@/lib/jwtUtils"
 
-const token = getDecodedToken()
+const token = getDecodedToken(UserRole.DOCTOR)
 const doctorId = token?.userId
 
 const records = await findRecordsForSpecificDoctor(doctorId as string)
@@ -79,8 +79,8 @@ export function PatientRecords({ onPatientSelect ,numberOfCases}: PatientRecords
       }
 
       // Grant access for the doctor to the patient record
-      await grantAccessForDoctor(recordId, doctorId as string)
-        .then(() => {
+      await grantAccessForDoctor(recordId, doctorId as string) // lenna hathy kan bich nwalli ndemandi l'access mel patient bich tetna77a w nwalli n'emit lsocket 
+        .then(() => {                                                // ta3 access request elli bich temchi lel patient
           toast.success(`Access granted to ${RecordOnSearch.patientName}.`)
 
           // Check if patient has missing information
@@ -94,13 +94,11 @@ export function PatientRecords({ onPatientSelect ,numberOfCases}: PatientRecords
             RecordOnSearch.basicInfo.conditions.length === 0
 
           if (hasMissingInfo) {
-            // Show dialog to complete information
             setSelectedRecordId(recordId)
             setIsCompleteInfoDialogOpen(true)
           }
 
-          // Refresh the records list to include the new patient
-          window.location.reload() // Force refresh to get updated records
+          window.location.reload() 
         })
         .catch((err) => {
           console.error("Error granting access:", err)

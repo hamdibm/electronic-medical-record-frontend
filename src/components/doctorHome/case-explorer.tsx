@@ -28,11 +28,11 @@ import { NewCaseDialog } from "./new-case-dialog"
 import { toast } from "sonner"
 import { Case, CaseStatus, CaseType } from "../../types"
 import { createCase, getCasesByDoctor, updateCase } from "@/assets/data/cases"
-import { getDecodedToken } from "@/lib/jwtUtils"
+import { getDecodedToken, UserRole } from "@/lib/jwtUtils"
 
 import {  Doctor, getDoctorById } from "@/assets/data/doctors"
 
-const token=getDecodedToken();
+const token=getDecodedToken(UserRole.DOCTOR);
 const doctorId=token?.userId;
 
 interface CaseExplorerProps {
@@ -218,16 +218,14 @@ export function CaseExplorer({ onCaseSelect }: CaseExplorerProps) {
       
       
   
-      // Create the case object to send to the backend
       const caseData: Case = {
-         // Generate a unique ID for the case
         id: Array.from({ length: 6 }, () => 
           String.fromCharCode(97 + Math.floor(Math.random() * 26))
         ).join(''),
         title: newCase.title || "",
         description: newCase.description || "",
-        type: newCase.type || "Consultation",     // Use type directly
-        status: newCase.status || "Open",         // Use provided status or default to "Open"
+        type: newCase.type || "Consultation",     
+        status: newCase.status || "Open",        
         createdBy: {
           id: doctorId as string,
           name: doctorCreator?.name as string,

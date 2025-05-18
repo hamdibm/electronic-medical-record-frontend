@@ -57,14 +57,14 @@ import {
   updateRecord,
 } from "../../assets/data/records";
 import { NewCaseDialog } from "./new-case-dialog";
-import { getDecodedToken } from "@/lib/jwtUtils";
+import { getDecodedToken, UserRole } from "@/lib/jwtUtils";
 import { getPrescriptions } from "@/assets/data/prescriptions";
 import { Case, ClinicalNote, Document, Prescription } from "@/types";
 import { getNotes } from "@/assets/data/clinicalNotes";
 import { getFiles } from "@/assets/data/files";
 import { getCasesByRecordId } from "@/assets/data/cases";
 import { CompletePatientInfoDialog } from "./complete-patient-info-dialog";
-const token = getDecodedToken();
+const token = getDecodedToken(UserRole.DOCTOR);
 const doctorId = token?.userId;
 
 if (!doctorId) {

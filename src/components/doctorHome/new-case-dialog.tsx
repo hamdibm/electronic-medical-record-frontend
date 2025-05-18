@@ -27,7 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {findRecordsForSpecificDoctor} from "../../assets/data/records"
 import {  CaseStatus, CaseType } from "../../types"
-import { getDecodedToken } from "@/lib/jwtUtils"
+import { getDecodedToken, UserRole } from "@/lib/jwtUtils"
 import { Record } from "../../types"
 import { Doctor, getDoctorsByRecordId} from "@/assets/data/doctors"
 
@@ -47,17 +47,16 @@ interface NewCaseDialogProps {
   }) => void
   preselectedPatient?: Record
 }
-const token=getDecodedToken();
-const doctorId=token?.userId;
+const token = getDecodedToken(UserRole.DOCTOR);
+const doctorId = token?.userId;
 
-const records= await findRecordsForSpecificDoctor(doctorId as string).then((res) => {
+const records = await findRecordsForSpecificDoctor(doctorId as string).then((res) => {
   return res;
 }).catch((err) => {
   console.error("Error fetching patients:", err);
   return [];
 })
-console.log("Fetched zzzzzzzzzz records:", records)
-// Sample data for doctors
+console.log("Fetched records:", records)
 export function NewCaseDialog({ open, onOpenChange, preselectedPatient,onCaseCreated }: NewCaseDialogProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")

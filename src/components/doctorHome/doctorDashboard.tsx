@@ -30,17 +30,20 @@ import { PatientRecords } from "./patient-records"
 import { PatientRecordDetail } from "./patient-record-details"
 import {toast} from "sonner"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { getDecodedToken } from "@/lib/jwtUtils"
+import { getDecodedToken, UserRole } from "@/lib/jwtUtils"
 import { getCasesByDoctor } from "@/assets/data/cases"
 import { Case, CaseStatus } from "@/types"
-import {  getDoctorById } from "@/assets/data/doctors"
-import { Socket } from "socket.io-client";
-const token=getDecodedToken();
+import {  Doctor, getDoctorById } from "@/assets/data/doctors"
+const token=getDecodedToken(UserRole.DOCTOR);
 const doctorId=token?.userId;
 if(!doctorId) {
-  throw new Error("Doctor ID not found in token")
+  console.log("Doctor ID not found in token")
 }
-const doctor=await getDoctorById(doctorId);
+let doctor:Doctor |null=null;
+if(doctorId){
+  doctor = await getDoctorById(doctorId);
+
+}
 export default function CollaborationCase() {
   const [cases, setCases] = useState<Case[]>([])
   const [caseCount, setCaseCount] = useState<number>(0)
@@ -56,63 +59,60 @@ export default function CollaborationCase() {
   const [quickFilter, setQuickFilter] = useState<string | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
   const [currentRoom, setCurrentRoom] = useState<string>('');
-  const [socket, setSocket] = useState<Socket | null>(null)
  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const handleCaseCountChange = (count: number) => {
     setCaseCount(count)
   }
   useEffect(() => {
-    if (!socket) {
-      const newSocketInstance = newSocket.connect();
-      setSocket(newSocketInstance);
-  
-      console.log("Emitting register_user with doctorId:", doctorId);
-  
-      // Emit register_user event
-      newSocketInstance.emit("register_user", doctorId);
-  
-      
-  
-      return () => {
-        newSocketInstance.disconnect();
-      };
+    if (!newSocket.connected) {
+      newSocket.connect();
     }
-  }, [socket]);
- 
+
+    const handleUpdateOnlineUsers = (users: string[]) => {
+      console.log("Received online users:", users);
+      setOnlineUsers(users);
+    };
+
+    if (doctorId) {
+      console.log("Emitting register_user with doctorId:", doctorId);
+      newSocket.emit("register_user", doctorId);
+    }
+
+    newSocket.on("update_online_users", handleUpdateOnlineUsers);
+
+    return () => {
+      newSocket.off("update_online_users", handleUpdateOnlineUsers);
+      newSocket.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     if (!currentRoom) return;
 
     const fetchComments = async () => {
       try {
-        const response = await fetch(`${SOCKET_SERVER_URL}/api/threads/rooms/${currentRoom}/comments`);
-        const data :Comment[]= await response.json();
+        const response = await fetch(
+          `${SOCKET_SERVER_URL}/api/threads/rooms/${currentRoom}/comments`
+        );
+        const data: Comment[] = await response.json();
         setComments(data);
       } catch (error) {
-        console.error('Error fetching comments:', error);
+        console.error("Error fetching comments:", error);
       }
     };
 
     fetchComments();
 
-    // Join the room
-    if (socket) {
-      socket.emit('join_room', currentRoom);
-      socket.on("update_online_users", (users: string[]) => {
-        console.log("Received online users:", users); 
-        setOnlineUsers(users);
-      });
-    }
+    console.log(`Joining room: ${currentRoom}`);
+    newSocket.emit("join_room", currentRoom);
 
-    // Cleanup: leave room when changing rooms
     return () => {
-      if (socket) {
-        socket.emit('leave_room', currentRoom);
-        socket.off("update_online_users");
-      }
+      console.log(`Leaving room: ${currentRoom}`);
+      newSocket.emit("leave_room", currentRoom);
     };
-  }, [currentRoom, socket]);
+  }, [currentRoom]);
   
-  
+  console.log("online users:", onlineUsers);
   useEffect(() => {
     if (doctorId) {
       getCasesByDoctor(doctorId)
@@ -129,15 +129,6 @@ export default function CollaborationCase() {
     }
   }, [])
   
-  useEffect(() => {
-    const isOnline = (userId: string) => onlineUsers.includes(userId);
-
-  // Example usage
-  console.log(`Is user ${doctorId} online?`, isOnline(doctorId as string));
-
-  }
-  , [onlineUsers]);
-
   
   interface Comment {
     id: string
@@ -205,8 +196,8 @@ export default function CollaborationCase() {
       userLiked: false,
       replies: [],
     }
-    if (socket) {
-      socket.emit("new_comment", {roomId:selectedCaseId,comment:newCommentObj}); 
+    if (newSocket) {
+      newSocket.emit("new_comment", {roomId:selectedCaseId,comment:newCommentObj}); 
     }
 
     setComments((prevComments) => [...prevComments, newCommentObj]);

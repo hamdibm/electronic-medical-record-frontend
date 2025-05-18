@@ -6,15 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ThumbsUp, MessageSquare, ChevronDown, ChevronUp, Send } from "lucide-react"
 import { toast } from "sonner"
-import { getDecodedToken } from "@/lib/jwtUtils"
-import { getDoctorById } from "@/assets/data/doctors"
+import { getDecodedToken, UserRole } from "@/lib/jwtUtils"
+import { Doctor, getDoctorById } from "@/assets/data/doctors"
 
-const token=getDecodedToken();
+const token=getDecodedToken(UserRole.DOCTOR);
 const doctorId=token?.userId;
 if(!doctorId) {
-  throw new Error("Doctor ID not found in token")
+  console.log("Doctor ID not found in token")
 }
-const doctor = await getDoctorById(doctorId);
+let doctor:Doctor |null=null;
+if(doctorId){
+  doctor = await getDoctorById(doctorId);
+
+}
 type Comment = {
   id: string
   author: {
@@ -50,7 +54,7 @@ export function CommentThread({ initialComments = [],roomId }: CommentThreadProp
       };
     }, []);
   useEffect(() => {
-    setComments(initialComments); // Update comments when the prop changes
+    setComments(initialComments); 
   }, [initialComments]);
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const toggleLike = (commentId: string, commentList: Comment[] = comments): Comment[] => {
@@ -86,7 +90,7 @@ export function CommentThread({ initialComments = [],roomId }: CommentThreadProp
         const replyObj: Comment = {
           id: `reply-${Math.random().toString(36)}`, 
           author: {
-            name: doctor?.name || "unknown doctor", // Current user
+            name: doctor?.name || "unknown doctor", 
             avatar: doctor?.avatar || "/placeholder.svg?height=40&width=40",
             specialty: doctor?.specialty || "unknown specialty",
           },
@@ -97,17 +101,14 @@ export function CommentThread({ initialComments = [],roomId }: CommentThreadProp
           replies: [],
         };
   
-        // Emit the reply to the server
         newSocket.emit("new_reply", { roomId, parentId: commentId, reply: replyObj });
   
-        // Add the reply to the parent's replies array
         return {
           ...comment,
           replies: [...comment.replies, replyObj],
         };
       }
   
-      // Recursively update nested replies
       if (comment.replies.length > 0) {
         return {
           ...comment,
@@ -115,7 +116,7 @@ export function CommentThread({ initialComments = [],roomId }: CommentThreadProp
         };
       }
   
-      return comment; // Return the comment unchanged if it's not the parent
+      return comment; 
     });
   };
   

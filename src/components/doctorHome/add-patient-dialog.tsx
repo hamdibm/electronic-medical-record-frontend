@@ -35,7 +35,6 @@ const AddPatientDialog = ({ open, onOpenChange, onPatientAdded, records }: AddPa
     }
     setIsSubmitting(true)
 
-    // Check if the patient is already in the doctor's records
     const existingPatient = records?.find((r) => r.id === recordId)
 
     if (existingPatient) {

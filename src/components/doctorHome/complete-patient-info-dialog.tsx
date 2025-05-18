@@ -17,13 +17,15 @@ import { Badge } from "@/components/ui/badge"
 import { X, Plus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getDecodedToken } from "@/lib/jwtUtils"
+import { getDecodedToken, UserRole } from "@/lib/jwtUtils"
 import type { Record } from "../../types"
 import { toast } from "sonner"
 
-const token = getDecodedToken()
+const token = getDecodedToken(UserRole.DOCTOR)
 const doctorId = token?.userId
-
+if (!doctorId) {
+  console.log("Doctor ID not found in token")
+}
 interface CompletePatientInfoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void

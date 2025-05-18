@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Bell, X, MessageSquare, AlertCircle, CheckCircle, FileText, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,10 +13,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { getNotificationsByUser } from "@/assets/data/notifications"
+import { getDecodedToken, UserRole } from "@/lib/jwtUtils"
+import { newSocket } from "@/lib/socket"
+const token=getDecodedToken(UserRole.DOCTOR);
+const doctorId=token?.userId;
+// if(!doctorId) {
+//   console.log("Doctor ID not found in token")
+// }
+export type NotificationType = "error" | "warning" | "success" | "info" | "comment" | "appointment" | "document"
 
-type NotificationType = "error" | "warning" | "success" | "info" | "comment" | "appointment" | "document"
-
-type Notification = {
+export type Notification = {
   id: string
   type: NotificationType
   message: string
@@ -25,69 +32,48 @@ type Notification = {
   read: boolean
 }
 
-const notifications: Notification[] = [
-  {
-    id: "1",
-    type: "error",
-    message: "Patient John Smith rejected your request",
-    description: "Consultation request for cardiac evaluation",
-    time: "5 minutes ago",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "comment",
-    message: "Dr. Sarah Chen added a comment to your case",
-    description: "Case #MED-2023-1234: Unusual Cardiac Symptoms",
-    time: "10 minutes ago",
-    read: false,
-  },
-  {
-    id: "3",
-    type: "success",
-    message: "Lab results are now available",
-    description: "Patient: Maria Garcia - Blood work results",
-    time: "30 minutes ago",
-    read: false,
-  },
-  {
-    id: "4",
-    type: "appointment",
-    message: "Upcoming consultation in 1 hour",
-    description: "With Dr. James Wilson - Cardiology Department",
-    time: "45 minutes ago",
-    read: true,
-  },
-  {
-    id: "5",
-    type: "document",
-    message: "New medical record uploaded",
-    description: "ECG Report for Patient: John Smith",
-    time: "1 hour ago",
-    read: true,
-  },
-  {
-    id: "6",
-    type: "warning",
-    message: "Medication interaction alert",
-    description: "Patient: Robert Johnson - Potential adverse reaction",
-    time: "2 hours ago",
-    read: true,
-  },
-  {
-    id: "7",
-    type: "info",
-    message: "System maintenance scheduled",
-    description: "MedCollab will be down for updates on Sunday, 2AM-4AM",
-    time: "1 day ago",
-    read: true,
-  },
-]
+
+
 
 export function NotificationsDropdown() {
-  const [open, setOpen] = useState(false)
-  const [notificationsList, setNotificationsList] = useState<Notification[]>(notifications)
 
+  const [open, setOpen] = useState(false)
+  const [notificationsList, setNotificationsList] = useState<Notification[]>([])
+  useEffect(() => {
+    if (!newSocket.connected) {
+      console.warn("WebSocket is not connected. Reconnecting...");
+      newSocket.connect();
+    }
+  const fetchNotifications = async () => {
+    try {
+      if (!doctorId) {
+        console.log("Doctor ID not found in token");
+      }
+      if(doctorId){const notifications = await getNotificationsByUser(doctorId);
+      setNotificationsList(notifications);}
+      
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+  fetchNotifications();
+
+  newSocket.on("notify-doctor", (data) => {
+  try {
+    handleNotificationUpdate(data);
+  } catch (error) {
+    console.error("Error handling notify-doctor event:", error);
+  }
+});
+
+  return () => {
+    newSocket.off("notify-doctor", handleNotificationUpdate);
+  };
+}, []);
+const handleNotificationUpdate = (notif: Notification ) => {
+  
+  setNotificationsList((prevNotifications) => [notif, ...prevNotifications]);
+};
   const unreadCount = notificationsList.filter((notification) => !notification.read).length
 
   const markAsRead = (id: string) => {
@@ -96,10 +82,12 @@ export function NotificationsDropdown() {
         notification.id === id ? { ...notification, read: true } : notification,
       ),
     )
+    newSocket.emit("markAsRead", id)
   }
 
   const markAllAsRead = () => {
     setNotificationsList(notificationsList.map((notification) => ({ ...notification, read: true })))
+    newSocket.emit("markAllAsRead", doctorId)
   }
 
   const getNotificationIcon = (type: NotificationType) => {

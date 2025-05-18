@@ -9,6 +9,7 @@ import {Route,Routes} from 'react-router-dom'
 import EmailVerification from './lib/emailVerification';
 import DoctorDashboard from './components/doctorHome/doctorDashboard'
 import { Toaster } from 'sonner';
+import PatientDashboard from './components/patientHome/patientDashboard';
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
       <Route path="/registerPatient" element={<RegisterPatient/>}/>
       <Route path="/verify-email/:token" element={<EmailVerification />} />
       <Route path="/doctor-dashboard" element={<DoctorDashboard/>} />
+      <Route path="/patient-dashboard" element={<PatientDashboard/>}/>
     </Routes>
     </>
   );
