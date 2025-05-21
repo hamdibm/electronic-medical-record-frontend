@@ -99,7 +99,7 @@ const ProfilePictureStep: React.FC = () => {
 
       try {
         const result = await axios.post(
-          'http://localhost:3000/api/auth/registerDoctor',
+          'http://localhost:3970/api/auth/registerDoctor',
           formToSend,
           { headers: { 'Content-Type': 'application/json' } }
         );

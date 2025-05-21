@@ -8,29 +8,47 @@ import RoleSelection from "../login/RoleSelection";
 import { Button } from "../ui/button";
 import { useState } from "react";
 import axios from "axios";
-
+import {toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
+  const navigate = useNavigate();
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    try {
-      const response = await axios.post("http://localhost:3000/api/auth/login", {
-        email,
-        password,
-      });
+  try {
+    const response = await axios.post("http://localhost:3970/api/auth/login", {
+      email,
+      password,
+    });
+    toast.success("Login successful");
+    console.log("Login success:", response.data);
 
-      console.log("Login success:", response.data);
+    const { accessToken, user } = response.data.data;
 
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.response?.data?.errorMessages || "Login failed");
+    const tokenKey = `${user.role}AccessToken`; 
+    const userKey = `${user.role}User`; 
+
+    localStorage.setItem(tokenKey, accessToken);
+    localStorage.setItem(userKey, JSON.stringify(user));
+
+    console.log("Stored accessToken:", localStorage.getItem(tokenKey));
+
+    if (user.role === "doctor") {
+      navigate("/doctor-dashboard");
+    } else if (user.role === "patient") {
+      navigate("/patient-dashboard");
+    } else {
+      navigate("/medicalRegulatory-dashboard");
     }
-  };
+  } catch (err) {
+    console.error("Login error:", err);
+    setError("Invalid email or password");
+  }
+};
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-200 p-4">
       <form className="flex flex-col sm:flex-row bg-white rounded-lg shadow-lg w-full max-w-4xl overflow-hidden">

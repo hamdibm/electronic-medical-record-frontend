@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { FormData } from '../types';
+import { FormData } from '../../../../types';
 
 interface FormState {
   currentStep: number;

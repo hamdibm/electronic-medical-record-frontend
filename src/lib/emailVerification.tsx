@@ -9,7 +9,7 @@ const EmailVerification: React.FC = () => {
     useEffect(() => {
         const verifyEmail = async () => {
             try {
-                await axios.get(`http://localhost:3000/api/auth/verifyEmail?token=${token}`);
+                await axios.get(`http://localhost:3970/api/auth/verifyEmail?token=${token}`);
                 navigate('/login'); 
             } catch (error) {
                 console.error('Email verification failed:', error);
